@@ -1,0 +1,4 @@
+words_en.txt is derived from FrequencyWords (content/2018/en/en_50k.txt)
+by Hermit Dave, https://github.com/hermitdave/FrequencyWords
+Licensed under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/).
+Changes: kept alphabetic words, dropped contraction fragments, added common contractions.

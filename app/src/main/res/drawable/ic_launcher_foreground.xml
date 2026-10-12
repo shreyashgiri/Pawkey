@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A keyboard key with cat ears and a paw print. Safe zone is the centre 66dp. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- ears -->
+    <path android:fillColor="#E8833A" android:pathData="M33,46 L36,26 L50,40 Z" />
+    <path android:fillColor="#E8833A" android:pathData="M75,46 L72,26 L58,40 Z" />
+    <path android:fillColor="#FFC9A3" android:pathData="M37,41 L38.5,31 L45,38 Z" />
+    <path android:fillColor="#FFC9A3" android:pathData="M71,41 L69.5,31 L63,38 Z" />
+    <!-- key cap -->
+    <path android:fillColor="#E8833A"
+        android:pathData="M38,36 L70,36 A10,10 0 0 1 80,46 L80,70 A10,10 0 0 1 70,80 L38,80 A10,10 0 0 1 28,70 L28,46 A10,10 0 0 1 38,36 Z" />
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M39,40 L69,40 A7,7 0 0 1 76,47 L76,67 A7,7 0 0 1 69,74 L39,74 A7,7 0 0 1 32,67 L32,47 A7,7 0 0 1 39,40 Z" />
+    <!-- paw: pad + four toes -->
+    <path android:fillColor="#E8833A"
+        android:pathData="M54,56 C59,56 63,61 63,65 C63,68.5 60,69.5 57.5,69 C55.5,68.6 52.5,68.6 50.5,69 C48,69.5 45,68.5 45,65 C45,61 49,56 54,56 Z" />
+    <path android:fillColor="#E8833A" android:pathData="M45,55 m-3,0 a3,3.6 0 1,0 6,0 a3,3.6 0 1,0 -6,0" />
+    <path android:fillColor="#E8833A" android:pathData="M50.5,49.5 m-3,0 a3,3.8 0 1,0 6,0 a3,3.8 0 1,0 -6,0" />
+    <path android:fillColor="#E8833A" android:pathData="M57.5,49.5 m-3,0 a3,3.8 0 1,0 6,0 a3,3.8 0 1,0 -6,0" />
+    <path android:fillColor="#E8833A" android:pathData="M63,55 m-3,0 a3,3.6 0 1,0 6,0 a3,3.6 0 1,0 -6,0" />
+</vector>

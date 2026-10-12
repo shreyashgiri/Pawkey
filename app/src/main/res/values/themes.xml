@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Pawkey" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/paw_accent</item>
+        <item name="colorSecondary">@color/paw_accent</item>
+        <item name="colorPrimaryContainer">#FFE3CC</item>
+        <item name="colorOnPrimaryContainer">#4A2500</item>
+    </style>
+</resources>
