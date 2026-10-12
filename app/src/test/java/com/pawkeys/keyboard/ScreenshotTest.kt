@@ -253,6 +253,22 @@ class ScreenshotTest {
         render(startIme("calico") { it.heightPercent = 85; it.numberRow = false }.second, "29_size_small")
     }
 
+    @Test fun stickers() {
+        val (ime, view) = startIme()
+        ime.onToolbarAction(CandidateStrip.ToolbarAction.STICKERS)
+        render(view, "60_stickers_panel")
+        // Full sheet of the pack at send size.
+        val size = 256
+        val pack = com.pawkeys.keyboard.stickers.StickerArt.pack
+        val sheet = Bitmap.createBitmap(size * 4, size * 3, Bitmap.Config.ARGB_8888)
+        val c = Canvas(sheet)
+        c.drawColor(0xFFE9EAEE.toInt())
+        pack.forEachIndexed { i, st ->
+            c.drawBitmap(com.pawkeys.keyboard.stickers.StickerArt.render(st, size), (i % 4) * size.toFloat(), (i / 4) * size.toFloat(), null)
+        }
+        save(sheet, "61_sticker_pack")
+    }
+
     @Test fun customizeBar() {
         val (ime, view) = startIme {
             it.toolbarButtons = listOf(CandidateStrip.ToolbarAction.EMOJI, CandidateStrip.ToolbarAction.CLIPBOARD,

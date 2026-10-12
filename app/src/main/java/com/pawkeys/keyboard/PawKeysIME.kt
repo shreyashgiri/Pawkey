@@ -3,6 +3,7 @@ package com.pawkeys.keyboard
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.graphics.Bitmap
 import android.icu.text.BreakIterator
 import android.content.SharedPreferences
 import android.content.res.Configuration
@@ -24,6 +25,10 @@ import com.pawkeys.keyboard.engine.Offensive
 import com.pawkeys.keyboard.engine.Suggestion
 import com.pawkeys.keyboard.engine.UserDictionary
 import com.pawkeys.keyboard.panels.BreedPanel
+import com.pawkeys.keyboard.stickers.Sticker
+import com.pawkeys.keyboard.stickers.StickerArt
+import com.pawkeys.keyboard.stickers.StickerPanel
+import java.io.File
 import com.pawkeys.keyboard.panels.ClipboardPanel
 import com.pawkeys.keyboard.panels.EmojiPanel
 import com.pawkeys.keyboard.panels.OneHandedRail
@@ -57,7 +62,7 @@ class PawKeysIME : InputMethodService(),
     private lateinit var stripFrame: FrameLayout
     private lateinit var keyboardView: KeyboardView
     private lateinit var keyboardFrame: FrameLayout
-    private enum class Panel { MENU, EMOJI, CLIPBOARD, TEXT_EDIT, THEMES, BREEDS }
+    private enum class Panel { MENU, EMOJI, STICKERS, CLIPBOARD, TEXT_EDIT, THEMES, BREEDS }
     private var panel: Panel? = null
     private var panelView: View? = null
     private var needsRebuild = false
@@ -855,6 +860,7 @@ class PawKeysIME : InputMethodService(),
         when (action) {
             CandidateStrip.ToolbarAction.MENU -> togglePanel(Panel.MENU)
             CandidateStrip.ToolbarAction.EMOJI -> togglePanel(Panel.EMOJI)
+            CandidateStrip.ToolbarAction.STICKERS -> togglePanel(Panel.STICKERS)
             CandidateStrip.ToolbarAction.CLIPBOARD -> togglePanel(Panel.CLIPBOARD)
             CandidateStrip.ToolbarAction.TEXT_EDIT -> togglePanel(Panel.TEXT_EDIT)
             CandidateStrip.ToolbarAction.THEMES -> togglePanel(Panel.THEMES)
@@ -900,6 +906,7 @@ class PawKeysIME : InputMethodService(),
             Panel.TEXT_EDIT -> TextEditPanel(this, theme, this)
             Panel.THEMES -> ThemePanel(this, theme, prefs.theme, prefs.breed) { prefs.theme = it }
             Panel.BREEDS -> BreedPanel(this, theme, prefs.breed) { prefs.breed = it }
+            Panel.STICKERS -> StickerPanel(this, theme, ::sendSticker, ::closePanel)
         }
         keyboardView.cancelGesture()
         keyboardView.visibility = View.GONE
@@ -911,6 +918,7 @@ class PawKeysIME : InputMethodService(),
             Panel.THEMES -> CandidateStrip.ToolbarAction.THEMES
             Panel.BREEDS -> CandidateStrip.ToolbarAction.BREEDS
             Panel.EMOJI -> CandidateStrip.ToolbarAction.EMOJI
+            Panel.STICKERS -> CandidateStrip.ToolbarAction.STICKERS
             Panel.CLIPBOARD -> CandidateStrip.ToolbarAction.CLIPBOARD
             Panel.TEXT_EDIT -> CandidateStrip.ToolbarAction.TEXT_EDIT
         }
@@ -957,6 +965,23 @@ class PawKeysIME : InputMethodService(),
 
     private fun openActivity(cls: Class<*>) {
         startActivity(Intent(this, cls).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
+    /** Renders the sticker to a PNG and sends it (or copies it if the app can't take images). */
+    internal fun sendSticker(sticker: Sticker) {
+        feedback.tick()
+        val file = File(RichContent.shareDir(this), "pawkeys_${sticker.id}.png")
+        runCatching {
+            val bmp = StickerArt.render(sticker, 512)
+            file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            bmp.recycle()
+        }.onFailure { return }
+        val result = RichContent.send(this, currentInputConnection, currentInputEditorInfo, file, "image/png", sticker.caption)
+        when (result) {
+            RichContent.Result.SENT -> Unit
+            RichContent.Result.COPIED -> Toast.makeText(this, "This app doesn't take stickers directly. Copied, so you can paste it.", Toast.LENGTH_SHORT).show()
+            RichContent.Result.FAILED -> Toast.makeText(this, "Couldn't send the sticker here", Toast.LENGTH_SHORT).show()
+        }
     }
 
     internal fun insertEmoji(emoji: String) {

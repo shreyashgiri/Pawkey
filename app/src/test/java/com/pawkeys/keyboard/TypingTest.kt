@@ -186,4 +186,12 @@ class TypingTest {
         type("ok")
         assertEquals("Ok", text)
     }
+
+    @Test fun stickerFallsBackToClipboardInTextOnlyField() {
+        ime.sendSticker(com.pawkeys.keyboard.stickers.StickerArt.pack.first())
+        val clip = ime.getSystemService(android.content.ClipboardManager::class.java).primaryClip!!
+        val uri = clip.getItemAt(0).uri!!
+        assertEquals("com.pawkeys.keyboard.files", uri.authority)
+        assert(java.io.File(ime.cacheDir, "share/pawkeys_hi.png").length() > 1000)
+    }
 }
