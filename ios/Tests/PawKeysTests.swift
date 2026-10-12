@@ -67,7 +67,14 @@ final class PawKeysTests: XCTestCase {
         view.frame = CGRect(origin: .zero, size: size)
         view.setNeedsLayout()
         view.layoutIfNeeded()
-        let img = UIGraphicsImageRenderer(size: size).image { _ in view.drawHierarchy(in: view.bounds, afterScreenUpdates: true) }
+        // There's no window in unit tests, so draw each layer's content and render the tree.
+        func display(_ v: UIView) {
+            v.setNeedsDisplay()
+            v.layer.displayIfNeeded()
+            v.subviews.forEach(display)
+        }
+        display(view)
+        let img = UIGraphicsImageRenderer(size: size).image { ctx in view.layer.render(in: ctx.cgContext) }
         try? img.pngData()?.write(to: outDir.appendingPathComponent("\(name).png"))
     }
 
