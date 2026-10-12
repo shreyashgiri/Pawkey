@@ -3,19 +3,19 @@
 An Android keyboard that combines **Fleksy's gestures** with **Samsung Keyboard's features**. It looks like Samsung's One UI keyboard, with a light cat theme on top: paw prints, cat-coat theme names and a cat emoji tab.
 
 <p>
-  <img src="docs/screenshots/typing_preview.png" width="49%" alt="Typing with suggestions">
-  <img src="docs/screenshots/glide_trail.png" width="49%" alt="Swipe typing with paw-print trail">
+  <img src="docs/ui/12_suggestions_autocorrect.png" width="49%" alt="Typing with suggestions">
+  <img src="docs/ui/18_swipe_typing.png" width="49%" alt="Swipe typing with paw-print trail">
 </p>
 <p>
-  <img src="docs/screenshots/panel_menu.png" width="49%" alt="Paw menu">
-  <img src="docs/screenshots/panel_emoji.png" width="49%" alt="Emoji panel with cat tab">
+  <img src="docs/ui/20_paw_menu.png" width="49%" alt="Paw menu">
+  <img src="docs/ui/21_emoji.png" width="49%" alt="Emoji panel with cat tab">
 </p>
 <p>
-  <img src="docs/screenshots/longpress_popup.png" width="49%" alt="Long-press accents, dark theme">
-  <img src="docs/screenshots/panel_text_edit.png" width="49%" alt="Text editing panel">
+  <img src="docs/ui/16_longpress_accents.png" width="49%" alt="Long-press accents, dark theme">
+  <img src="docs/ui/24_text_editing.png" width="49%" alt="Text editing panel">
 </p>
 
-![Themes](docs/screenshots/themes.png)
+![Themes](docs/ui/25_themes_panel.png)
 
 ## Features
 

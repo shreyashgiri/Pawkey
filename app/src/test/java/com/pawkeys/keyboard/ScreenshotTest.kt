@@ -1,5 +1,8 @@
 package com.pawkeys.keyboard
 
+import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.os.SystemClock
@@ -9,6 +12,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import com.pawkeys.keyboard.engine.Suggestion
+import com.pawkeys.keyboard.settings.SettingsActivity
+import com.pawkeys.keyboard.settings.ShortcutsActivity
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -17,49 +22,77 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowLooper
 import java.io.File
+import java.util.concurrent.TimeUnit
 
 /**
- * Renders the real keyboard views to PNGs in build/screenshots so the look can be
- * checked without a device. Run with: ./gradlew :app:testDebugUnitTest --tests '*ScreenshotTest*'
+ * Renders every part of the keyboard UI to PNGs in build/screenshots, used for
+ * docs/UI.md. Run with: ./gradlew :app:testDebugUnitTest --tests '*ScreenshotTest*'
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w393dp-h852dp-xxhdpi")
 class ScreenshotTest {
     private val out = File("build/screenshots").apply { mkdirs() }
+    private val width = 393 * 3
 
-    private fun startIme(theme: String = "calico", configure: (Prefs) -> Unit = {}): Pair<PawKeysIME, View> {
+    private fun startIme(
+        theme: String = "calico",
+        inputType: Int = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES,
+        imeAction: Int = EditorInfo.IME_ACTION_SEND,
+        configure: (Prefs) -> Unit = {},
+    ): Pair<PawKeysIME, View> {
         val ime = Robolectric.setupService(PawKeysIME::class.java)
         val prefs = Prefs(ime)
         prefs.theme = theme
         configure(prefs)
         val view = ime.onCreateInputView()
-        ime.onStartInputView(EditorInfo().apply {
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-            imeOptions = EditorInfo.IME_ACTION_SEND
-        }, false)
+        ime.onStartInputView(EditorInfo().apply { this.inputType = inputType; imeOptions = imeAction }, false)
+        layout(view)
         return ime to view
     }
 
-    private fun render(view: View, name: String) {
-        val width = (393 * 3)
+    private fun layout(view: View) {
         view.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
         view.layout(0, 0, view.measuredWidth, view.measuredHeight)
         ShadowLooper.idleMainLooper()
+    }
+
+    private fun render(view: View, name: String) {
+        layout(view)
         val bmp = Bitmap.createBitmap(view.measuredWidth, view.measuredHeight, Bitmap.Config.ARGB_8888)
         view.draw(Canvas(bmp))
+        save(bmp, name)
+    }
+
+    private fun save(bmp: Bitmap, name: String) {
         File(out, "$name.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 
-    private fun strip(root: View) = ((root as ViewGroup).getChildAt(0) as ViewGroup).getChildAt(0) as CandidateStrip
-    private fun keyboard(root: View): KeyboardView {
-        fun find(v: View): KeyboardView? = when (v) {
-            is KeyboardView -> v
-            is ViewGroup -> (0 until v.childCount).firstNotNullOfOrNull { find(v.getChildAt(it)) }
-            else -> null
-        }
-        return find(root)!!
+    private fun renderActivity(activity: Activity, name: String) {
+        val decor = activity.window.decorView
+        decor.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(852 * 3, View.MeasureSpec.EXACTLY))
+        decor.layout(0, 0, decor.measuredWidth, decor.measuredHeight)
+        ShadowLooper.idleMainLooper()
+        val bmp = Bitmap.createBitmap(decor.measuredWidth, decor.measuredHeight, Bitmap.Config.ARGB_8888)
+        decor.draw(Canvas(bmp))
+        save(bmp, name)
     }
+
+    private fun strip(root: View) = ((root as ViewGroup).getChildAt(0) as ViewGroup).getChildAt(0) as CandidateStrip
+
+    private fun findKeyboard(v: View): KeyboardView? = when (v) {
+        is KeyboardView -> v
+        is ViewGroup -> (0 until v.childCount).firstNotNullOfOrNull { findKeyboard(v.getChildAt(it)) }
+        else -> null
+    }
+
+    private fun findByDescription(v: View, desc: String): View? = when {
+        v.contentDescription == desc -> v
+        v is ViewGroup -> (0 until v.childCount).firstNotNullOfOrNull { findByDescription(v.getChildAt(it), desc) }
+        else -> null
+    }
+
+    private fun keyboard(root: View) = findKeyboard(root)!!
 
     private fun touch(kv: KeyboardView, action: Int, x: Float, y: Float, down: Long) {
         val e = MotionEvent.obtain(down, SystemClock.uptimeMillis(), action, x, y, 0)
@@ -67,77 +100,158 @@ class ScreenshotTest {
         e.recycle()
     }
 
-    private fun keyCenter(kv: KeyboardView, c: Char) = kv.letterCenters()[c]!!
+    private fun key(code: Int) = Key(code, "")
 
-    @Test fun themes() {
-        for (t in KeyboardTheme.ALL) {
-            val (_, view) = startIme(t.id)
-            render(view, "theme_${t.id}")
-        }
+    // ---------------------------------------------------------------- keys
+
+    @Test fun mainKeyboard() {
+        val (ime, view) = startIme()
+        render(view, "01_keyboard")
+        ime.onKey(key(Codes.SHIFT))
+        render(view, "02_shift_on")
+        ime.onKey(key(Codes.SHIFT))
+        render(view, "03_caps_lock")
     }
 
-    @Test fun typingWithSuggestionsAndPreview() {
-        val (_, view) = startIme("calico")
-        render(view, "layout_measure")
+    @Test fun symbolPages() {
+        val (ime, view) = startIme()
+        ime.onKey(key(Codes.SYMBOLS))
+        render(view, "04_symbols_1")
+        ime.onKey(key(Codes.SYMBOLS_MORE))
+        render(view, "05_symbols_2")
+    }
+
+    @Test fun fieldLayouts() {
+        render(startIme(inputType = InputType.TYPE_CLASS_NUMBER, imeAction = EditorInfo.IME_ACTION_DONE).second, "06_number_pad")
+        render(startIme(inputType = InputType.TYPE_CLASS_PHONE, imeAction = EditorInfo.IME_ACTION_GO).second, "07_phone_pad")
+        render(startIme(inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS, imeAction = EditorInfo.IME_ACTION_NEXT).second, "08_email")
+        render(startIme(inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI, imeAction = EditorInfo.IME_ACTION_GO).second, "09_url")
+        render(startIme(inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD, imeAction = EditorInfo.IME_ACTION_DONE).second, "10_password")
+        render(startIme(imeAction = EditorInfo.IME_ACTION_SEARCH) { it.numberRow = true }.second, "11_number_row_search")
+    }
+
+    // ---------------------------------------------------------------- strip
+
+    @Test fun suggestionStrip() {
+        val (_, view) = startIme()
         strip(view).setSuggestions(listOf(Suggestion("kitten", 0.0, true), Suggestion("kittem", 0.0), Suggestion("kittens", 0.0)), 0)
-        val kv = keyboard(view)
-        val (x, y) = keyCenter(kv, 'g')
-        val down = SystemClock.uptimeMillis()
-        touch(kv, MotionEvent.ACTION_DOWN, x, y, down)
-        render(view, "typing_preview")
-        touch(kv, MotionEvent.ACTION_CANCEL, x, y, down)
+        render(view, "12_suggestions_autocorrect")
+        strip(view).setSuggestions(listOf(Suggestion("purr", 0.0), Suggestion("pure", 0.0), Suggestion("purple", 0.0)), -1)
+        render(view, "13_suggestions_completions")
+        strip(view).setSuggestions(listOf(Suggestion("On my way! 🐾", 0.0, isShortcut = true), Suggestion("omw", 0.0)), -1)
+        render(view, "14_suggestions_shortcut")
     }
 
-    @Test fun longPressPopup() {
-        val (_, view) = startIme("tuxedo")
-        render(view, "layout_measure2")
+    // ---------------------------------------------------------------- touch feedback
+
+    @Test fun keyPreviewAndPopups() {
+        val (_, view) = startIme()
         val kv = keyboard(view)
-        val (x, y) = keyCenter(kv, 'e')
-        val down = SystemClock.uptimeMillis()
+        var (x, y) = kv.letterCenters()['g']!!
+        var down = SystemClock.uptimeMillis()
         touch(kv, MotionEvent.ACTION_DOWN, x, y, down)
-        ShadowLooper.idleMainLooper(500, java.util.concurrent.TimeUnit.MILLISECONDS)
-        render(view, "longpress_popup")
+        render(view, "15_key_preview")
         touch(kv, MotionEvent.ACTION_CANCEL, x, y, down)
+
+        kv.letterCenters()['e']!!.let { x = it.first; y = it.second }
+        down = SystemClock.uptimeMillis()
+        touch(kv, MotionEvent.ACTION_DOWN, x, y, down)
+        ShadowLooper.idleMainLooper(500, TimeUnit.MILLISECONDS)
+        touch(kv, MotionEvent.ACTION_MOVE, x + kv.unitWidth * 1.2f, y - kv.unitWidth, down)
+        render(view, "16_longpress_accents")
+        touch(kv, MotionEvent.ACTION_CANCEL, x, y, down)
+
+        // The full-stop key: bottom row, second from the right.
+        val bottom = keyboard(view).let { it.height - it.unitWidth * 0.8f }
+        val dotX = width - kv.unitWidth * 2.0f
+        down = SystemClock.uptimeMillis()
+        touch(kv, MotionEvent.ACTION_DOWN, dotX, bottom, down)
+        ShadowLooper.idleMainLooper(500, TimeUnit.MILLISECONDS)
+        render(view, "17_longpress_punctuation")
+        touch(kv, MotionEvent.ACTION_CANCEL, dotX, bottom, down)
     }
 
-    @Test fun glideTrail() {
-        val (_, view) = startIme("calico") { it.gestureMode = "glide" }
-        render(view, "layout_measure3")
+    @Test fun swipeTyping() {
+        val (_, view) = startIme { it.gestureMode = "glide" }
         val kv = keyboard(view)
         val down = SystemClock.uptimeMillis()
-        val path = "kitten".map { keyCenter(kv, it) }
+        val path = "kitten".map { kv.letterCenters()[it]!! }
         touch(kv, MotionEvent.ACTION_DOWN, path[0].first, path[0].second, down)
         for (i in 0 until path.size - 1) for (s in 1..10) {
             val t = s / 10f
             touch(kv, MotionEvent.ACTION_MOVE, path[i].first + (path[i + 1].first - path[i].first) * t, path[i].second + (path[i + 1].second - path[i].second) * t, down)
         }
-        render(view, "glide_trail")
+        render(view, "18_swipe_typing")
         touch(kv, MotionEvent.ACTION_CANCEL, 0f, 0f, down)
     }
 
+    // ---------------------------------------------------------------- panels
+
     @Test fun panels() {
-        for (action in listOf(
-            CandidateStrip.ToolbarAction.MENU, CandidateStrip.ToolbarAction.EMOJI,
-            CandidateStrip.ToolbarAction.CLIPBOARD, CandidateStrip.ToolbarAction.TEXT_EDIT,
-        )) {
-            val (ime, view) = startIme("calico")
-            render(view, "layout_measure4")
+        fun panel(action: CandidateStrip.ToolbarAction, name: String, theme: String = "calico") {
+            val (ime, view) = startIme(theme)
             ime.onToolbarAction(action)
-            render(view, "panel_${action.name.lowercase()}")
+            render(view, name)
         }
-        val (ime, view) = startIme("tuxedo")
-        render(view, "layout_measure5")
-        ime.onToolbarAction(CandidateStrip.ToolbarAction.EMOJI)
-        render(view, "panel_emoji_dark")
+        panel(CandidateStrip.ToolbarAction.MENU, "20_paw_menu")
+        panel(CandidateStrip.ToolbarAction.EMOJI, "21_emoji")
+        panel(CandidateStrip.ToolbarAction.TEXT_EDIT, "24_text_editing")
+        panel(CandidateStrip.ToolbarAction.SIZE, "26_keyboard_size")
+
+        val (ime, view) = startIme()
+        ime.getSystemService(ClipboardManager::class.java).apply {
+            setPrimaryClip(ClipData.newPlainText("", "https://github.com/shreyashgiri/Pawkey"))
+            setPrimaryClip(ClipData.newPlainText("", "Feed the cat at 6pm 🐟"))
+            setPrimaryClip(ClipData.newPlainText("", "Meeting notes: ship PawKeys v1, add more themes, test swipe typing on small phones"))
+        }
+        ShadowLooper.idleMainLooper()
+        ime.onToolbarAction(CandidateStrip.ToolbarAction.CLIPBOARD)
+        render(view, "23_clipboard")
+        ime.onToolbarAction(CandidateStrip.ToolbarAction.CLIPBOARD)
+
+        // Clipboard: pin the first clip.
+        ime.onToolbarAction(CandidateStrip.ToolbarAction.CLIPBOARD)
+        findByDescription(view, "Pin")?.performClick()
+        render(view, "23b_clipboard_pinned")
+
+        val (ime2, v2) = startIme()
+        ime2.onToolbarAction(CandidateStrip.ToolbarAction.MENU)
+        layout(v2)
+        findByDescription(v2, "Themes")!!.performClick()
+        render(v2, "25_themes_panel")
+
+        val (ime3, v3) = startIme()
+        ime3.onToolbarAction(CandidateStrip.ToolbarAction.TEXT_EDIT)
+        layout(v3)
+        (v3.findViewsWithText("Select")).forEach { it.performClick() }
+        render(v3, "24b_text_editing_select")
     }
 
-    @Test fun variants() {
-        val (_, a) = startIme("siamese") { it.numberRow = true; it.oneHanded = "right" }
-        render(a, "one_handed_number_row")
-        val ime = Robolectric.setupService(PawKeysIME::class.java)
-        Prefs(ime).theme = "ragdoll"
-        val v = ime.onCreateInputView()
-        ime.onStartInputView(EditorInfo().apply { inputType = InputType.TYPE_CLASS_PHONE }, false)
-        render(v, "phone_pad")
+    private fun View.findViewsWithText(text: String): List<View> {
+        val list = ArrayList<View>()
+        findViewsWithText(list, text, View.FIND_VIEWS_WITH_TEXT)
+        return list.filter { (it as? android.widget.TextView)?.text == text }
+    }
+
+    @Test fun oneHanded() {
+        render(startIme { it.oneHanded = "right" }.second, "27_one_handed_right")
+        render(startIme("tuxedo") { it.oneHanded = "left" }.second, "28_one_handed_left")
+    }
+
+    @Test fun themes() {
+        for (t in KeyboardTheme.ALL) render(startIme(t.id).second, "30_theme_${t.id}")
+        val (ime, view) = startIme("tuxedo")
+        ime.onToolbarAction(CandidateStrip.ToolbarAction.EMOJI)
+        render(view, "22_emoji_dark")
+        render(startIme("calico") { it.heightPercent = 85; it.numberRow = false }.second, "29_size_small")
+    }
+
+    // ---------------------------------------------------------------- app screens
+
+    @Test fun settingsScreens() {
+        val settings = Robolectric.buildActivity(SettingsActivity::class.java).setup().get()
+        renderActivity(settings, "40_settings")
+        val shortcuts = Robolectric.buildActivity(ShortcutsActivity::class.java).setup().get()
+        renderActivity(shortcuts, "41_text_shortcuts")
     }
 }
