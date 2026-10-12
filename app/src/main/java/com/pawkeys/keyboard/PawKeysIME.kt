@@ -25,6 +25,11 @@ import com.pawkeys.keyboard.engine.Offensive
 import com.pawkeys.keyboard.engine.Suggestion
 import com.pawkeys.keyboard.engine.UserDictionary
 import com.pawkeys.keyboard.panels.BreedPanel
+import com.pawkeys.keyboard.translate.LanguagePanel
+import com.pawkeys.keyboard.translate.Languages
+import com.pawkeys.keyboard.translate.MlKitTranslator
+import com.pawkeys.keyboard.translate.TextTranslator
+import com.pawkeys.keyboard.translate.TranslateBar
 import com.pawkeys.keyboard.stickers.Sticker
 import com.pawkeys.keyboard.stickers.StickerArt
 import com.pawkeys.keyboard.stickers.StickerPanel
@@ -45,6 +50,7 @@ class PawKeysIME : InputMethodService(),
     KeyboardView.Listener,
     CandidateStrip.Listener,
     TextEditPanel.Actions,
+    TranslateBar.Listener,
     SharedPreferences.OnSharedPreferenceChangeListener {
 
     private lateinit var prefs: Prefs
@@ -62,7 +68,7 @@ class PawKeysIME : InputMethodService(),
     private lateinit var stripFrame: FrameLayout
     private lateinit var keyboardView: KeyboardView
     private lateinit var keyboardFrame: FrameLayout
-    private enum class Panel { MENU, EMOJI, STICKERS, CLIPBOARD, TEXT_EDIT, THEMES, BREEDS }
+    private enum class Panel { MENU, EMOJI, STICKERS, CLIPBOARD, TEXT_EDIT, THEMES, BREEDS, LANGUAGE }
     private var panel: Panel? = null
     private var panelView: View? = null
     private var needsRebuild = false
@@ -120,6 +126,7 @@ class PawKeysIME : InputMethodService(),
         prefs.sp.unregisterOnSharedPreferenceChangeListener(this)
         clipboard.release()
         feedback.release()
+        translator.close()
         userDict.save()
         super.onDestroy()
     }
@@ -355,6 +362,7 @@ class PawKeysIME : InputMethodService(),
     }
 
     private fun handleText(raw: String) {
+        if (translating) { translateType(raw); return }
         val ic = currentInputConnection ?: return
         punctIndex = -1
         var text = raw
@@ -428,6 +436,7 @@ class PawKeysIME : InputMethodService(),
     }
 
     private fun handleSpace(wasSpace: Boolean) {
+        if (translating) { translateType(" "); return }
         val ic = currentInputConnection ?: return
         punctIndex = -1
         if (composing.isNotEmpty()) {
@@ -455,6 +464,7 @@ class PawKeysIME : InputMethodService(),
     }
 
     private fun handleDelete() {
+        if (translating) { translateDelete(word = false); return }
         val ic = currentInputConnection ?: return
         punctIndex = -1
         lastAutoSpace = false
@@ -527,6 +537,7 @@ class PawKeysIME : InputMethodService(),
     }
 
     private fun handleEnter() {
+        if (translating) { onInsertTranslation(); return }
         val ic = currentInputConnection ?: return
         if (composing.isNotEmpty()) commitComposing("", allowCorrect = false)
         lastAutoSpace = false
@@ -572,6 +583,14 @@ class PawKeysIME : InputMethodService(),
     // ---------------------------------------------------------------- gestures
 
     override fun onFlick(flick: Flick) {
+        if (translating) {
+            when (flick) {
+                Flick.RIGHT -> translateType(" ")
+                Flick.LEFT -> translateDelete(word = true)
+                else -> Unit
+            }
+            return
+        }
         val ic = currentInputConnection ?: return
         feedback.tick()
         manualShift = false
@@ -729,6 +748,11 @@ class PawKeysIME : InputMethodService(),
         val words = decoder.decode(xs, ys, keyboardView.letterCenters(), keyboardView.unitWidth, userDict.learned)
             .filterNot { isBlocked(it) }
         if (words.isEmpty()) return
+        if (translating) {
+            if (translateBuffer.isNotEmpty() && !translateBuffer.endsWith(" ")) translateBuffer.append(' ')
+            translateType(applyShift(words[0]))
+            return
+        }
         if (composing.isNotEmpty()) {
             commitComposing(" ", allowCorrect = true)
         } else {
@@ -861,6 +885,7 @@ class PawKeysIME : InputMethodService(),
             CandidateStrip.ToolbarAction.MENU -> togglePanel(Panel.MENU)
             CandidateStrip.ToolbarAction.EMOJI -> togglePanel(Panel.EMOJI)
             CandidateStrip.ToolbarAction.STICKERS -> togglePanel(Panel.STICKERS)
+            CandidateStrip.ToolbarAction.TRANSLATE -> if (translating) onCloseTranslate() else startTranslate()
             CandidateStrip.ToolbarAction.CLIPBOARD -> togglePanel(Panel.CLIPBOARD)
             CandidateStrip.ToolbarAction.TEXT_EDIT -> togglePanel(Panel.TEXT_EDIT)
             CandidateStrip.ToolbarAction.THEMES -> togglePanel(Panel.THEMES)
@@ -907,6 +932,9 @@ class PawKeysIME : InputMethodService(),
             Panel.THEMES -> ThemePanel(this, theme, prefs.theme, prefs.breed) { prefs.theme = it }
             Panel.BREEDS -> BreedPanel(this, theme, prefs.breed) { prefs.breed = it }
             Panel.STICKERS -> StickerPanel(this, theme, ::sendSticker, ::closePanel)
+            Panel.LANGUAGE -> LanguagePanel(this, theme,
+                if (pickingSource) "Translate from" else "Translate into",
+                if (pickingSource) prefs.translateFrom else prefs.translateTo) { code -> pickLanguage(code) }
         }
         keyboardView.cancelGesture()
         keyboardView.visibility = View.GONE
@@ -919,6 +947,7 @@ class PawKeysIME : InputMethodService(),
             Panel.BREEDS -> CandidateStrip.ToolbarAction.BREEDS
             Panel.EMOJI -> CandidateStrip.ToolbarAction.EMOJI
             Panel.STICKERS -> CandidateStrip.ToolbarAction.STICKERS
+            Panel.LANGUAGE -> CandidateStrip.ToolbarAction.TRANSLATE
             Panel.CLIPBOARD -> CandidateStrip.ToolbarAction.CLIPBOARD
             Panel.TEXT_EDIT -> CandidateStrip.ToolbarAction.TEXT_EDIT
         }
@@ -941,6 +970,7 @@ class PawKeysIME : InputMethodService(),
     }
 
     private fun showSizeBar() {
+        restoreStrip()
         closePanel()
         var value = prefs.heightPercent
         val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -958,6 +988,9 @@ class PawKeysIME : InputMethodService(),
     }
 
     private fun restoreStrip() {
+        translateBar = null
+        translateBuffer.clear()
+        translated = ""
         if (root == null || strip.parent === stripFrame) return
         stripFrame.removeAllViews()
         stripFrame.addView(strip)
@@ -999,6 +1032,132 @@ class PawKeysIME : InputMethodService(),
         if (composing.isNotEmpty()) commitComposing("", allowCorrect = false)
         ic.commitText(text, 1)
         closePanel()
+    }
+
+    // ---------------------------------------------------------------- translate
+
+    /** Replaceable so tests can use a fake; ML Kit on device. */
+    internal var translator: TextTranslator = MlKitTranslator()
+    private var translateBar: TranslateBar? = null
+    private val translateBuffer = StringBuilder()
+    private var translated = ""
+    private var translateStatus: String? = null
+    private var pickingSource = true
+    private val uiHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val translateLater = Runnable { runTranslation() }
+    internal val translating get() = translateBar != null
+
+    /** Swap the Whisker bar for the Translate bar; typing now goes into it. */
+    internal fun startTranslate() {
+        if (root == null) return
+        if (composing.isNotEmpty()) commitComposing("", allowCorrect = false)
+        closePanel()
+        restoreStrip()
+        val bar = TranslateBar(this, theme, this)
+        translateBar = bar
+        stripFrame.removeAllViews()
+        stripFrame.addView(bar, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT))
+        bar.setLanguages(prefs.translateFrom, prefs.translateTo)
+        prepareTranslator()
+        shift = if (autoCapOn) ShiftState.ON else ShiftState.OFF
+        keyboardView.shiftState = shift
+    }
+
+    private fun prepareTranslator() {
+        val to = Languages.name(prefs.translateTo)
+        translateStatus = "Getting $to ready (one-time download)…"
+        refreshTranslateBar()
+        val from = prefs.translateFrom
+        val target = prefs.translateTo
+        translator.prepare(from, target) { error ->
+            if (!translating || from != prefs.translateFrom || target != prefs.translateTo) return@prepare
+            translateStatus = error?.let { "Couldn't get $to: $it" }
+            refreshTranslateBar()
+            if (error == null) runTranslation()
+        }
+    }
+
+    private fun refreshTranslateBar() {
+        translateBar?.show(translateBuffer.toString(), translated, translateStatus)
+    }
+
+    private fun translateType(text: String) {
+        var t = text
+        if (shift != ShiftState.OFF && t.length == 1 && t[0].isLetter()) t = t.uppercase()
+        translateBuffer.append(t)
+        if (shift == ShiftState.ON) shift = ShiftState.OFF
+        if (t.endsWith(". ") || (t == " " && translateBuffer.endsWith(". "))) shift = if (autoCapOn) ShiftState.ON else shift
+        keyboardView.shiftState = shift
+        afterTranslateEdit()
+    }
+
+    private fun translateDelete(word: Boolean) {
+        if (translateBuffer.isEmpty()) return
+        if (word) {
+            var i = translateBuffer.length
+            while (i > 0 && translateBuffer[i - 1].isWhitespace()) i--
+            while (i > 0 && !translateBuffer[i - 1].isWhitespace()) i--
+            translateBuffer.setLength(i)
+        } else {
+            translateBuffer.setLength(translateBuffer.length - lastGraphemeLength(translateBuffer.toString()))
+        }
+        afterTranslateEdit()
+    }
+
+    private fun afterTranslateEdit() {
+        refreshTranslateBar()
+        uiHandler.removeCallbacks(translateLater)
+        uiHandler.postDelayed(translateLater, 250)
+    }
+
+    private fun runTranslation() {
+        val text = translateBuffer.toString().trim()
+        if (text.isEmpty()) { translated = ""; refreshTranslateBar(); return }
+        if (translateStatus != null && translateStatus!!.startsWith("Getting")) return
+        translator.translate(text, prefs.translateFrom, prefs.translateTo) { result, error ->
+            if (!translating || translateBuffer.toString().trim() != text) return@translate
+            translated = result.orEmpty()
+            translateStatus = error?.let { "Couldn't translate: $it" }
+            refreshTranslateBar()
+        }
+    }
+
+    override fun onPickLanguage(source: Boolean) {
+        pickingSource = source
+        openPanel(Panel.LANGUAGE)
+    }
+
+    private fun pickLanguage(code: String) {
+        if (pickingSource) prefs.translateFrom = code else prefs.translateTo = code
+        closePanel()
+        translateBar?.setLanguages(prefs.translateFrom, prefs.translateTo)
+        translated = ""
+        prepareTranslator()
+    }
+
+    override fun onSwapLanguages() {
+        val from = prefs.translateFrom
+        prefs.translateFrom = prefs.translateTo
+        prefs.translateTo = from
+        translateBar?.setLanguages(prefs.translateFrom, prefs.translateTo)
+        translated = ""
+        prepareTranslator()
+    }
+
+    override fun onInsertTranslation() {
+        val out = translated.ifEmpty { translateBuffer.toString() }.trim()
+        if (out.isEmpty()) return
+        currentInputConnection?.commitText(out, 1)
+        translateBuffer.clear()
+        translated = ""
+        refreshTranslateBar()
+    }
+
+    override fun onCloseTranslate() {
+        uiHandler.removeCallbacks(translateLater)
+        restoreStrip()
+        updateShift()
+        updateSuggestions()
     }
 
     // ---------------------------------------------------------------- text editing panel

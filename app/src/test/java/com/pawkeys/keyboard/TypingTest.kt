@@ -194,4 +194,31 @@ class TypingTest {
         assertEquals("com.pawkeys.keyboard.files", uri.authority)
         assert(java.io.File(ime.cacheDir, "share/pawkeys_hi.png").length() > 1000)
     }
+
+    /** Stands in for ML Kit: "translates" by tagging the text with the target language. */
+    private class FakeTranslator : com.pawkeys.keyboard.translate.TextTranslator {
+        override fun prepare(from: String, to: String, done: (String?) -> Unit) = done(null)
+        override fun translate(text: String, from: String, to: String, done: (String?, String?) -> Unit) = done("[$to] $text", null)
+        override fun close() = Unit
+    }
+
+    @Test fun translateTypesIntoTheBarAndInsertsTheTranslation() {
+        ime.translator = FakeTranslator()
+        ime.onCreateInputView()
+        ime.onStartInputView(EditorInfo().apply { inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES }, false)
+        ime.onToolbarAction(CandidateStrip.ToolbarAction.TRANSLATE)
+        assert(ime.translating)
+        type("good morning")
+        assertEquals("", text) // nothing reaches the app until Insert
+        ShadowLooper.idleMainLooper(300, java.util.concurrent.TimeUnit.MILLISECONDS)
+        ime.onKey(keys.getValue(Codes.ENTER))
+        assertEquals("[hi] Good morning", text)
+        // Swap and close.
+        ime.onSwapLanguages()
+        assertEquals("hi", Prefs(ime).translateFrom)
+        ime.onCloseTranslate()
+        assert(!ime.translating)
+        type(" ok")
+        assertEquals("[hi] Good morning ok", text)
+    }
 }

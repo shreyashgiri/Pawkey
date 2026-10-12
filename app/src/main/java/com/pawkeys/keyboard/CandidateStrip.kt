@@ -38,6 +38,7 @@ class CandidateStrip(context: Context, private val listener: Listener) : View(co
         MENU(R.drawable.ic_pets, "Den"),
         EMOJI(R.drawable.ic_mood, "Emoji"),
         STICKERS(R.drawable.ic_sticky_note_2, "Stickers"),
+        TRANSLATE(R.drawable.ic_translate, "Translate"),
         CLIPBOARD(R.drawable.ic_content_paste, "Stash"),
         TEXT_EDIT(R.drawable.ic_edit_note, "Groom"),
         ONE_HANDED(R.drawable.ic_front_hand, "Single paw"),

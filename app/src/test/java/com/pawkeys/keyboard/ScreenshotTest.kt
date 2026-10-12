@@ -253,6 +253,24 @@ class ScreenshotTest {
         render(startIme("calico") { it.heightPercent = 85; it.numberRow = false }.second, "29_size_small")
     }
 
+    @Test fun translate() {
+        val (ime, view) = startIme()
+        ime.translator = object : com.pawkeys.keyboard.translate.TextTranslator {
+            override fun prepare(from: String, to: String, done: (String?) -> Unit) = done(null)
+            override fun translate(text: String, from: String, to: String, done: (String?, String?) -> Unit) =
+                done(if (text == "Good morning, how are you?") "सुप्रभात, आप कैसे हैं?" else text, null)
+            override fun close() = Unit
+        }
+        ime.onToolbarAction(CandidateStrip.ToolbarAction.TRANSLATE)
+        "good morning, how are you?".forEach { ch ->
+            ime.onKey(if (ch == ' ') key(Codes.SPACE) else Key(ch.code, ch.toString()))
+        }
+        ShadowLooper.idleMainLooper(300, TimeUnit.MILLISECONDS)
+        render(view, "62_translate")
+        ime.onPickLanguage(false)
+        render(view, "63_translate_languages")
+    }
+
     @Test fun stickers() {
         val (ime, view) = startIme()
         ime.onToolbarAction(CandidateStrip.ToolbarAction.STICKERS)

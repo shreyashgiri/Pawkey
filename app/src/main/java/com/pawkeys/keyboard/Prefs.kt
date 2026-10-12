@@ -43,6 +43,13 @@ class Prefs(context: Context) {
     var sound: Boolean
         get() = sp.getBoolean(SOUND, false)
         set(v) = sp.edit().putBoolean(SOUND, v).apply()
+    var translateFrom: String
+        get() = sp.getString(TRANSLATE_FROM, "en")!!
+        set(v) = sp.edit().putString(TRANSLATE_FROM, v).apply()
+    var translateTo: String
+        get() = sp.getString(TRANSLATE_TO, "hi")!!
+        set(v) = sp.edit().putString(TRANSLATE_TO, v).apply()
+
     /** "click", "kitten", "cat", "duck" or "system". */
     var soundStyle: String
         get() = sp.getString(SOUND_STYLE, "click")!!
@@ -83,6 +90,8 @@ class Prefs(context: Context) {
         const val HEIGHT = "keyboard_height"
         const val ONE_HANDED = "one_handed"
         const val SOUND = "sound"
+        const val TRANSLATE_FROM = "translate_from"
+        const val TRANSLATE_TO = "translate_to"
         const val SOUND_STYLE = "sound_style"
         const val SOUND_VOLUME = "sound_volume"
         const val VIBRATE = "vibrate"
