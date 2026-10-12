@@ -8,7 +8,7 @@ import android.widget.TextView
 import com.pawkeys.keyboard.KeyboardTheme
 import com.pawkeys.keyboard.R
 
-/** Samsung's "Text editing" panel: cursor pad, selection mode, copy / cut / paste, undo / redo. */
+/** Groom: cursor pad, select mode, copy / cut / paste, undo / redo. */
 @SuppressLint("ViewConstructor")
 class TextEditPanel(
     context: Context,
@@ -44,7 +44,7 @@ class TextEditPanel(
 
         fun row(vararg views: Pair<View, Float>) = LinearLayout(context).apply {
             orientation = HORIZONTAL
-            views.forEach { (v, w) -> addView(v, UiKit.weighted(w, 3f, context)) }
+            views.forEach { (v, w) -> addView(v, UiKit.weighted(w, 4f, context)) }
             this@TextEditPanel.addView(this, UiKit.weighted(1f, 0f, context, vertical = true))
         }
         fun icon(res: Int, desc: String, repeat: Boolean = false, background: Int = theme.key, action: () -> Unit) =
@@ -59,22 +59,22 @@ class TextEditPanel(
             icon(R.drawable.ic_first_page, "Home") { actions.home(selecting) } to 1f,
             icon(R.drawable.ic_keyboard_arrow_up, "Up", repeat = true) { actions.moveCursor(0, -1, selecting) } to 1f,
             icon(R.drawable.ic_last_page, "End") { actions.end(selecting) } to 1f,
-            text("Select all") { actions.selectAll() } to 1.2f,
-            icon(R.drawable.ic_undo, "Undo", background = theme.functionKey) { actions.undo() } to 0.8f,
+            text("Select all") { actions.selectAll() } to 1.3f,
+            icon(R.drawable.ic_undo, "Undo", background = theme.functionKey) { actions.undo() } to 1f,
         )
         row(
             icon(R.drawable.ic_keyboard_arrow_left, "Left", repeat = true) { actions.moveCursor(-1, 0, selecting) } to 1f,
             selectButton to 1f,
             icon(R.drawable.ic_keyboard_arrow_right, "Right", repeat = true) { actions.moveCursor(1, 0, selecting) } to 1f,
-            text("Copy") { actions.copy(); setSelecting(false) } to 1.2f,
-            icon(R.drawable.ic_redo, "Redo", background = theme.functionKey) { actions.redo() } to 0.8f,
+            text("Copy") { actions.copy(); setSelecting(false) } to 1.3f,
+            icon(R.drawable.ic_redo, "Redo", background = theme.functionKey) { actions.redo() } to 1f,
         )
         row(
             View(context) to 1f,
             icon(R.drawable.ic_keyboard_arrow_down, "Down", repeat = true) { actions.moveCursor(0, 1, selecting) } to 1f,
             View(context) to 1f,
-            text("Cut") { actions.cut(); setSelecting(false) } to 1.2f,
-            text("Paste") { actions.paste() } to 0.8f,
+            text("Cut") { actions.cut(); setSelecting(false) } to 1.3f,
+            text("Paste") { actions.paste() } to 1f,
         )
         row(
             UiKit.textButton(context, theme, "ABC") { actions.back() } to 3f,

@@ -8,8 +8,8 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import android.os.Handler
 import android.os.Looper
-import android.text.TextUtils
 import android.text.TextPaint
+import android.text.TextUtils
 import android.util.TypedValue
 import android.view.MotionEvent
 import android.view.View
@@ -17,9 +17,9 @@ import androidx.core.content.ContextCompat
 import com.pawkeys.keyboard.engine.Suggestion
 
 /**
- * The bar above the keys. Like Samsung's keyboard it shows a toolbar (emoji,
- * clipboard, text editing, one-handed mode, ...) when you're not typing, and
- * three suggestions (best one in the middle) while you are.
+ * The Whisker bar above the keys. When you're not typing it shows the Den button,
+ * your chosen shortcut buttons and Hide. While typing it shows three Hunches
+ * (suggestions) with the strongest one in the middle.
  */
 @SuppressLint("ViewConstructor")
 class CandidateStrip(context: Context, private val listener: Listener) : View(context) {
@@ -30,26 +30,31 @@ class CandidateStrip(context: Context, private val listener: Listener) : View(co
         fun onSuggestionLongPressed(suggestion: Suggestion)
     }
 
-    enum class ToolbarAction(val icon: Int) {
-        MENU(R.drawable.ic_pets),
-        EMOJI(R.drawable.ic_mood),
-        CLIPBOARD(R.drawable.ic_content_paste),
-        TEXT_EDIT(R.drawable.ic_edit_note),
-        ONE_HANDED(R.drawable.ic_front_hand),
-        SIZE(R.drawable.ic_height),
-        SETTINGS(R.drawable.ic_settings),
-        HIDE(R.drawable.ic_keyboard_arrow_down),
+    /** Everything that can live on the Whisker bar or in the Den. [label] is the PawKeys name. */
+    enum class ToolbarAction(val icon: Int, val label: String) {
+        MENU(R.drawable.ic_pets, "Den"),
+        EMOJI(R.drawable.ic_mood, "Emoji"),
+        CLIPBOARD(R.drawable.ic_content_paste, "Stash"),
+        TEXT_EDIT(R.drawable.ic_edit_note, "Groom"),
+        ONE_HANDED(R.drawable.ic_front_hand, "Single paw"),
+        SIZE(R.drawable.ic_height, "Stretch"),
+        SETTINGS(R.drawable.ic_settings, "Settings"),
+        HIDE(R.drawable.ic_keyboard_arrow_down, "Hide"),
     }
 
     var theme = KeyboardTheme.CALICO
         set(v) { field = v; invalidate() }
 
-    /** Highlights the toolbar button of the panel that's currently open. */
+    /** The buttons between Den and Hide, in order. */
+    var buttons: List<ToolbarAction> = DEFAULT_BUTTONS
+        set(v) { field = v; invalidate() }
+
+    /** Highlights the button of the panel that's currently open. */
     var activeAction: ToolbarAction? = null
         set(v) { field = v; invalidate() }
 
     private var suggestions: List<Suggestion> = emptyList()
-    /** Index in [suggestions] that autocorrect will apply on space (drawn in the accent colour). */
+    /** Index in [suggestions] that Auto-fix will apply on space (drawn in the accent colour). */
     private var autoIndex = -1
     private var showToolbar = true
 
@@ -57,10 +62,13 @@ class CandidateStrip(context: Context, private val listener: Listener) : View(co
     private fun dp(v: Float) = v * dm.density
     private val textPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.CENTER
-        textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 16f, dm)
+        textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 15.5f, dm)
     }
+    private val regular = Typeface.create("sans-serif", Typeface.NORMAL)
+    private val medium = Typeface.create("sans-serif-medium", Typeface.NORMAL)
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val slots = ArrayList<RectF>()
+    private val slotActions = ArrayList<ToolbarAction>()
     private var pressed = -1
     private val handler = Handler(Looper.getMainLooper())
     private var longPressed = false
@@ -73,7 +81,7 @@ class CandidateStrip(context: Context, private val listener: Listener) : View(co
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), dp(46f).toInt())
+        setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), UiDims.stripHeight(context))
     }
 
     fun showToolbar() {
@@ -92,7 +100,7 @@ class CandidateStrip(context: Context, private val listener: Listener) : View(co
 
     val isShowingSuggestions get() = !showToolbar
 
-    /** Samsung puts the strongest suggestion in the middle slot. */
+    /** The strongest Hunch goes in the middle slot. */
     private fun slotOrder(n: Int): IntArray = when (n) {
         1 -> intArrayOf(0)
         2 -> intArrayOf(1, 0)
@@ -106,29 +114,44 @@ class CandidateStrip(context: Context, private val listener: Listener) : View(co
     }
 
     override fun onDraw(canvas: Canvas) {
-        canvas.drawColor(theme.background)
+        paint.color = theme.background
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
         slots.clear()
+        slotActions.clear()
         if (showToolbar) drawToolbar(canvas) else drawSuggestions(canvas)
     }
 
     private fun drawToolbar(canvas: Canvas) {
-        val actions = ToolbarAction.entries
-        val w = width.toFloat() / actions.size
-        val size = dp(23f).toInt()
-        actions.forEachIndexed { i, a ->
-            val r = RectF(i * w, 0f, (i + 1) * w, height.toFloat())
+        val side = dp(8f)
+        val cell = dp(48f)
+        // Den on the left, Hide on the right, chosen buttons spread evenly between.
+        val items = ArrayList<Pair<ToolbarAction, Float>>()
+        items += ToolbarAction.MENU to side + cell / 2
+        items += ToolbarAction.HIDE to width - side - cell / 2
+        val middle = buttons.filter { it != ToolbarAction.MENU && it != ToolbarAction.HIDE }
+        if (middle.isNotEmpty()) {
+            val left = side + cell
+            val span = width - 2 * side - 2 * cell
+            val step = span / middle.size
+            middle.forEachIndexed { i, a -> items += a to left + step * (i + 0.5f) }
+        }
+        val iconSize = dp(21f).toInt()
+        val cy = height / 2f
+        for ((a, cx) in items) {
+            val r = RectF(cx - cell / 2, 0f, cx + cell / 2, height.toFloat())
+            val index = slots.size
             slots += r
-            if (i == pressed || a == activeAction) {
-                paint.color = if (a == activeAction) theme.accent else theme.keyPressed
-                paint.alpha = if (a == activeAction) 50 else 255
-                val rad = dp(18f)
-                canvas.drawCircle(r.centerX(), r.centerY(), rad, paint)
+            slotActions += a
+            val active = a == activeAction
+            if (active || index == pressed) {
+                paint.color = if (active) theme.accent else theme.keyPressed
+                paint.alpha = if (active) 36 else 255
+                canvas.drawRoundRect(cx - dp(20f), cy - dp(15f), cx + dp(20f), cy + dp(15f), dp(15f), dp(15f), paint)
                 paint.alpha = 255
             }
             val d = ContextCompat.getDrawable(context, a.icon)!!.mutate()
-            d.setTint(if (a == ToolbarAction.MENU || a == activeAction) theme.accent else theme.stripText)
-            val cx = r.centerX().toInt(); val cy = r.centerY().toInt()
-            d.setBounds(cx - size / 2, cy - size / 2, cx + size / 2, cy + size / 2)
+            d.setTint(if (a == ToolbarAction.MENU || active) theme.accent else theme.stripText)
+            d.setBounds((cx - iconSize / 2).toInt(), (cy - iconSize / 2).toInt(), (cx + iconSize / 2).toInt(), (cy + iconSize / 2).toInt())
             d.draw(canvas)
         }
     }
@@ -137,28 +160,28 @@ class CandidateStrip(context: Context, private val listener: Listener) : View(co
         val n = minOf(3, suggestions.size)
         val order = slotOrder(n)
         val w = width.toFloat() / 3f
-        // Centre the slots when there are fewer than three.
         val offset = (3 - n) * w / 2f
-        paint.color = theme.hintText
-        paint.alpha = 90
         for (s in 0 until n) {
             val r = RectF(offset + s * w, 0f, offset + (s + 1) * w, height.toFloat())
             slots += r
             if (s == pressed) {
-                paint.color = theme.keyPressed; paint.alpha = 255
-                canvas.drawRoundRect(r.left + dp(4f), dp(5f), r.right - dp(4f), height - dp(5f), dp(10f), dp(10f), paint)
+                paint.color = theme.keyPressed
+                canvas.drawRoundRect(r.left + dp(6f), dp(6f), r.right - dp(6f), height - dp(6f), dp(12f), dp(12f), paint)
             }
             if (s > 0) {
-                paint.color = theme.hintText; paint.alpha = 90
-                canvas.drawRect(r.left, height * 0.3f, r.left + dp(1f), height * 0.7f, paint)
+                paint.color = theme.hintText
+                paint.alpha = 45
+                canvas.drawRect(r.left, height * 0.36f, r.left + dp(1f), height * 0.64f, paint)
+                paint.alpha = 255
             }
             val idx = order[s]
             val sug = suggestions[idx]
             val auto = idx == autoIndex
             textPaint.color = if (auto) theme.accent else theme.stripText
-            textPaint.typeface = if (idx == 0) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+            textPaint.typeface = if (idx == 0) medium else regular
+            if (idx == 0 && !auto) textPaint.color = theme.keyText
             val label = if (sug.isShortcut) "↪ ${sug.word}" else sug.word
-            val text = TextUtils.ellipsize(label, textPaint, r.width() - dp(12f), TextUtils.TruncateAt.END).toString()
+            val text = TextUtils.ellipsize(label, textPaint, r.width() - dp(16f), TextUtils.TruncateAt.END).toString()
             canvas.drawText(text, r.centerX(), r.centerY() - (textPaint.descent() + textPaint.ascent()) / 2f, textPaint)
         }
     }
@@ -184,7 +207,7 @@ class CandidateStrip(context: Context, private val listener: Listener) : View(co
                 if (slot >= 0 && !longPressed) {
                     performClick()
                     if (showToolbar) {
-                        ToolbarAction.entries.getOrNull(slot)?.let { listener.onToolbarAction(it) }
+                        slotActions.getOrNull(slot)?.let { listener.onToolbarAction(it) }
                     } else {
                         val order = slotOrder(minOf(3, suggestions.size))
                         val idx = order.getOrNull(slot) ?: return true
@@ -198,4 +221,8 @@ class CandidateStrip(context: Context, private val listener: Listener) : View(co
     }
 
     override fun performClick(): Boolean = super.performClick()
+
+    companion object {
+        val DEFAULT_BUTTONS = listOf(ToolbarAction.EMOJI, ToolbarAction.CLIPBOARD, ToolbarAction.TEXT_EDIT, ToolbarAction.ONE_HANDED)
+    }
 }

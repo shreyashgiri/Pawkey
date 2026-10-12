@@ -2,5 +2,5 @@
 <resources>
     <string name="app_name">PawKeys</string>
     <string name="subtype_en_us">English (US)</string>
-    <string name="text_shortcuts">Text shortcuts</string>
+    <string name="text_shortcuts">Tricks</string>
 </resources>

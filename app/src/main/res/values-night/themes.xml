@@ -1,9 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.PawKeys" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/paw_accent_dark</item>
-        <item name="colorSecondary">@color/paw_accent_dark</item>
-        <item name="colorPrimaryContainer">#5C3410</item>
-        <item name="colorOnPrimaryContainer">#FFE3CC</item>
+        <item name="colorPrimary">#EFA262</item>
+        <item name="colorOnPrimary">#1A1208</item>
+        <item name="colorSecondary">#EFA262</item>
+        <item name="colorPrimaryContainer">#4A2E16</item>
+        <item name="colorOnPrimaryContainer">#FBE6D7</item>
+        <item name="android:colorBackground">#111113</item>
+        <item name="colorSurface">#111113</item>
+        <item name="colorSurfaceContainer">#1C1C1F</item>
+        <item name="colorSurfaceContainerHigh">#232327</item>
+        <item name="colorSurfaceContainerHighest">#2A2A2E</item>
+        <item name="colorOnSurface">#EDEDF0</item>
+        <item name="colorOnSurfaceVariant">#9C9CA5</item>
+        <item name="colorOutline">#3A3A40</item>
+        <item name="android:statusBarColor">#111113</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>

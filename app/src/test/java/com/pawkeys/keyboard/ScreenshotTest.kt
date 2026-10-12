@@ -217,7 +217,7 @@ class ScreenshotTest {
         val (ime2, v2) = startIme()
         ime2.onToolbarAction(CandidateStrip.ToolbarAction.MENU)
         layout(v2)
-        findByDescription(v2, "Themes")!!.performClick()
+        findByDescription(v2, "Coats")!!.performClick()
         render(v2, "25_themes_panel")
 
         val (ime3, v3) = startIme()

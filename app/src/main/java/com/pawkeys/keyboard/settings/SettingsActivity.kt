@@ -27,8 +27,8 @@ class SettingsActivity : AppCompatActivity() {
         val dp = resources.displayMetrics.density
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         root.addView(MaterialToolbar(this).apply {
-            title = "PawKeys 🐾"
-            subtitle = "Keyboard settings"
+            title = "PawKeys"
+            subtitle = "Settings"
         })
         root.addView(TextInputLayout(this).apply {
             hint = "Try PawKeys here"
@@ -61,13 +61,13 @@ class SettingsActivity : AppCompatActivity() {
             click("open_shortcuts") { startActivity(Intent(requireContext(), ShortcutsActivity::class.java)) }
             click("clear_learned") {
                 AlertDialog.Builder(requireContext())
-                    .setTitle("Forget learned words?")
+                    .setTitle("Clear memory?")
                     .setMessage("PawKeys will forget the words and phrases it learned from your typing.")
-                    .setPositiveButton("Forget") { _, _ ->
+                    .setPositiveButton("Clear") { _, _ ->
                         UserDictionary(requireContext().filesDir).clear()
                         // Tell a running keyboard to drop its in-memory copy too.
                         preferenceManager.sharedPreferences?.edit()?.putLong(KEY_LEARNED_RESET, System.currentTimeMillis())?.apply()
-                        Toast.makeText(requireContext(), "Done 🐾", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), "Memory cleared", Toast.LENGTH_SHORT).show()
                     }
                     .setNegativeButton(android.R.string.cancel, null)
                     .show()

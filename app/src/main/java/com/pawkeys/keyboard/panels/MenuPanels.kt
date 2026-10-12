@@ -18,13 +18,13 @@ import com.pawkeys.keyboard.R
 private fun LinearLayout.grid(tiles: List<View>, columns: Int) {
     tiles.chunked(columns).forEach { chunk ->
         val row = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
-        chunk.forEach { row.addView(it, UiKit.weighted(1f, 4f, context)) }
-        repeat(columns - chunk.size) { row.addView(View(context), UiKit.weighted(1f, 4f, context)) }
+        chunk.forEach { row.addView(it, UiKit.weighted(1f, 3f, context)) }
+        repeat(columns - chunk.size) { row.addView(View(context), UiKit.weighted(1f, 3f, context)) }
         addView(row, UiKit.weighted(1f, 0f, context, vertical = true))
     }
 }
 
-/** The paw button's menu: every keyboard feature one tap away (Samsung's expanded toolbar). */
+/** The Den: every PawKeys tool one tap away, opened from the paw on the Whisker bar. */
 @SuppressLint("ViewConstructor")
 class PawMenuPanel(context: Context, theme: KeyboardTheme, prefs: Prefs, private val onAction: (Item) -> Unit) : LinearLayout(context) {
     enum class Item { EMOJI, CLIPBOARD, TEXT_EDIT, ONE_HANDED, SIZE, THEMES, NUMBER_ROW, GESTURES, SOUND, VIBRATION, SHORTCUTS, SETTINGS }
@@ -32,21 +32,22 @@ class PawMenuPanel(context: Context, theme: KeyboardTheme, prefs: Prefs, private
     init {
         orientation = VERTICAL
         setBackgroundColor(theme.background)
-        val pad = UiKit.dp(context, 4f)
-        setPadding(pad, pad, pad, pad)
-        val gesture = when (prefs.gestureMode) { "glide" -> "Swipe typing"; "off" -> "Gestures off"; else -> "Fleksy gestures" }
+        val pad = UiKit.dp(context, 6f)
+        setPadding(pad, 0, pad, pad)
+        addView(UiKit.header(context, theme, "Den"), LayoutParams(LayoutParams.MATCH_PARENT, UiKit.dp(context, 38f)))
+        val gesture = when (prefs.gestureMode) { "glide" -> "Prowl"; "off" -> "No gestures"; else -> "Flicks" }
         val tiles = listOf(
             Triple(Item.EMOJI, R.drawable.ic_mood, "Emoji"),
-            Triple(Item.CLIPBOARD, R.drawable.ic_content_paste, "Clipboard"),
-            Triple(Item.TEXT_EDIT, R.drawable.ic_edit_note, "Text editing"),
-            Triple(Item.ONE_HANDED, R.drawable.ic_front_hand, "One-handed"),
-            Triple(Item.SIZE, R.drawable.ic_height, "Keyboard size"),
-            Triple(Item.THEMES, R.drawable.ic_palette, "Themes"),
+            Triple(Item.CLIPBOARD, R.drawable.ic_content_paste, "Stash"),
+            Triple(Item.TEXT_EDIT, R.drawable.ic_edit_note, "Groom"),
+            Triple(Item.ONE_HANDED, R.drawable.ic_front_hand, "Single paw"),
+            Triple(Item.SIZE, R.drawable.ic_height, "Stretch"),
+            Triple(Item.THEMES, R.drawable.ic_palette, "Coats"),
             Triple(Item.NUMBER_ROW, R.drawable.ic_keyboard, "Number row"),
             Triple(Item.GESTURES, R.drawable.ic_gesture, gesture),
             Triple(Item.SOUND, R.drawable.ic_volume_up, "Sound"),
-            Triple(Item.VIBRATION, R.drawable.ic_vibration, "Vibration"),
-            Triple(Item.SHORTCUTS, R.drawable.ic_short_text, "Text shortcuts"),
+            Triple(Item.VIBRATION, R.drawable.ic_vibration, "Haptics"),
+            Triple(Item.SHORTCUTS, R.drawable.ic_short_text, "Tricks"),
             Triple(Item.SETTINGS, R.drawable.ic_settings, "Settings"),
         ).map { (item, icon, label) ->
             val on = when (item) {
@@ -63,15 +64,16 @@ class PawMenuPanel(context: Context, theme: KeyboardTheme, prefs: Prefs, private
     }
 }
 
-/** Theme picker: a mini keyboard preview per theme. */
+/** Coats: a mini keyboard preview per colour theme. */
 @SuppressLint("ViewConstructor")
 class ThemePanel(context: Context, theme: KeyboardTheme, current: String, private val onPick: (String) -> Unit) : LinearLayout(context) {
     init {
         orientation = VERTICAL
         setBackgroundColor(theme.background)
-        val pad = UiKit.dp(context, 4f)
-        setPadding(pad, pad, pad, pad)
-        val options = listOf("system" to "Follow system") + KeyboardTheme.ALL.map { it.id to it.name }
+        val pad = UiKit.dp(context, 6f)
+        setPadding(pad, 0, pad, pad)
+        addView(UiKit.header(context, theme, "Coats"), LayoutParams(LayoutParams.MATCH_PARENT, UiKit.dp(context, 38f)))
+        val options = listOf("system" to "Auto") + KeyboardTheme.ALL.map { it.id to it.name }
         val tiles = options.map { (id, name) ->
             val t = KeyboardTheme.resolve(context, id)
             swatch(t, name, id == current, theme) { onPick(id) }
@@ -147,10 +149,10 @@ class SizeBar(context: Context, theme: KeyboardTheme, start: Int, private val on
         onChange(value)
     }
 
-    private fun update() { label.text = "Keyboard size  $value%" }
+    private fun update() { label.text = "Stretch  $value%" }
 }
 
-/** One-handed mode side rail: move the keyboard to the other side, or go back to full width. */
+/** Single paw side rail: move the keys to the other side, or go back to full width. */
 @SuppressLint("ViewConstructor")
 class OneHandedRail(context: Context, theme: KeyboardTheme, side: String, onSwitch: () -> Unit, onExit: () -> Unit) : LinearLayout(context) {
     init {

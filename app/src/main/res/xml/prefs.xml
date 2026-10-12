@@ -7,75 +7,78 @@
         <Preference app:key="setup_select" app:title="2. Switch to PawKeys" app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
-    <PreferenceCategory app:title="Look and feel" app:iconSpaceReserved="false">
-        <ListPreference app:key="theme" app:title="Theme" app:defaultValue="system"
+    <PreferenceCategory app:title="Look" app:iconSpaceReserved="false">
+        <ListPreference app:key="theme" app:title="Coat" app:defaultValue="system"
             app:entries="@array/theme_names" app:entryValues="@array/theme_values"
             app:useSimpleSummaryProvider="true" app:iconSpaceReserved="false" />
-        <SwitchPreferenceCompat app:key="key_borders" app:title="Key borders" app:defaultValue="false" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat app:key="key_borders" app:title="Key outlines" app:defaultValue="false" app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat app:key="number_row" app:title="Number row" app:defaultValue="false" app:iconSpaceReserved="false" />
-        <SwitchPreferenceCompat app:key="hint_chars" app:title="Show alternative characters"
-            app:summary="Numbers and symbols in the corner of the letter keys. Long-press a key to type them."
+        <SwitchPreferenceCompat app:key="hint_chars" app:title="Corner hints"
+            app:summary="Show the long-press symbol in the corner of each letter"
             app:defaultValue="false" app:iconSpaceReserved="false" />
-        <SeekBarPreference app:key="keyboard_height" app:title="Keyboard size (%)" app:defaultValue="100"
-            app:min="70" android:max="140" app:showSeekBarValue="true" app:seekBarIncrement="5"
-            app:iconSpaceReserved="false"/>
-        <ListPreference app:key="one_handed" app:title="One-handed mode" app:defaultValue="off"
+        <SeekBarPreference app:key="keyboard_height" app:title="Stretch" app:summary="Keyboard height, in percent"
+            app:defaultValue="100" app:min="70" android:max="140" app:showSeekBarValue="true" app:seekBarIncrement="5"
+            app:iconSpaceReserved="false" />
+        <ListPreference app:key="one_handed" app:title="Single paw" app:defaultValue="off"
             app:entries="@array/one_handed_names" app:entryValues="@array/one_handed_values"
             app:useSimpleSummaryProvider="true" app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
-    <PreferenceCategory app:title="Smart typing" app:iconSpaceReserved="false">
-        <SwitchPreferenceCompat app:key="suggestions" app:title="Predictive text" app:defaultValue="true" app:iconSpaceReserved="false" />
-        <SwitchPreferenceCompat app:key="autocorrect" app:title="Auto replace"
-            app:summary="Fix typos when you press space. Press backspace to undo." app:defaultValue="true"
+    <PreferenceCategory app:title="Typing" app:iconSpaceReserved="false">
+        <SwitchPreferenceCompat app:key="suggestions" app:title="Hunches"
+            app:summary="Word suggestions above the keys" app:defaultValue="true" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat app:key="autocorrect" app:title="Auto-fix"
+            app:summary="Fix typos when you press space. Backspace undoes it." app:defaultValue="true"
             app:dependency="suggestions" app:iconSpaceReserved="false" />
-        <SwitchPreferenceCompat app:key="next_word" app:title="Next-word suggestions"
-            app:summary="Learned from what you type, stays on your phone" app:defaultValue="true"
+        <SwitchPreferenceCompat app:key="next_word" app:title="Next-word hunches"
+            app:summary="Predict the next word from how you write" app:defaultValue="true"
             app:dependency="suggestions" app:iconSpaceReserved="false" />
-        <SwitchPreferenceCompat app:key="learn_words" app:title="Learn new words" app:defaultValue="true" app:iconSpaceReserved="false" />
-        <SwitchPreferenceCompat app:key="block_offensive" app:title="Block offensive words" app:defaultValue="true" app:iconSpaceReserved="false" />
-        <SwitchPreferenceCompat app:key="auto_cap" app:title="Auto capitalise" app:defaultValue="true" app:iconSpaceReserved="false" />
-        <SwitchPreferenceCompat app:key="double_space_period" app:title="Double-space for full stop" app:defaultValue="true" app:iconSpaceReserved="false" />
-        <SwitchPreferenceCompat app:key="smart_punctuation" app:title="Smart punctuation"
-            app:summary="Typing . , ! ? after a suggested word or swipe-space moves the space after it"
+        <SwitchPreferenceCompat app:key="learn_words" app:title="Memory"
+            app:summary="Learn new words. Stays on this phone." app:defaultValue="true" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat app:key="block_offensive" app:title="Clean hunches"
+            app:summary="Never suggest offensive words" app:defaultValue="true" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat app:key="auto_cap" app:title="Auto capitals" app:defaultValue="true" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat app:key="double_space_period" app:title="Double-space full stop" app:defaultValue="true" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat app:key="smart_punctuation" app:title="Smart spacing"
+            app:summary="Punctuation after an automatic space moves the space after it"
             app:defaultValue="true" app:iconSpaceReserved="false" />
-        <Preference app:key="open_shortcuts" app:title="Text shortcuts"
-            app:summary="Type a shortcut like “omw” and tap its expansion in the suggestion bar" app:iconSpaceReserved="false" />
-        <Preference app:key="clear_learned" app:title="Forget learned words" app:iconSpaceReserved="false" />
+        <Preference app:key="open_shortcuts" app:title="Tricks"
+            app:summary="Short codes that expand into phrases, like omw → On my way!" app:iconSpaceReserved="false" />
+        <Preference app:key="clear_learned" app:title="Clear memory" app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
-    <PreferenceCategory app:title="Swipe and gestures" app:iconSpaceReserved="false">
-        <ListPreference app:key="gesture_mode" app:title="Keyboard swipe controls" app:defaultValue="fleksy"
+    <PreferenceCategory app:title="Gestures" app:iconSpaceReserved="false">
+        <ListPreference app:key="gesture_mode" app:title="Swipe on letters" app:defaultValue="fleksy"
             app:entries="@array/gesture_names" app:entryValues="@array/gesture_values"
             app:useSimpleSummaryProvider="true" app:iconSpaceReserved="false" />
         <Preference app:key="gesture_help" app:selectable="false" app:iconSpaceReserved="false"
-            app:summary="Fleksy gestures: swipe right = space (twice = full stop), swipe left = delete word, swipe down / up = next / previous suggestion or punctuation." />
-        <SwitchPreferenceCompat app:key="space_cursor" app:title="Spacebar cursor control"
+            app:summary="Flicks: right = space (twice = full stop) · left = delete word · down / up = next / previous hunch or punctuation.\nProwl: draw a word across the letters." />
+        <SwitchPreferenceCompat app:key="space_cursor" app:title="Scoot"
             app:summary="Slide along the spacebar to move the cursor" app:defaultValue="true" app:iconSpaceReserved="false" />
-        <SwitchPreferenceCompat app:key="delete_swipe" app:title="Swipe left from backspace"
-            app:summary="Selects words to delete; release to delete them" app:defaultValue="true" app:iconSpaceReserved="false" />
-        <SwitchPreferenceCompat app:key="paw_trail" app:title="Paw-print swipe trail" app:defaultValue="true" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat app:key="delete_swipe" app:title="Scratch"
+            app:summary="Slide left from backspace to select words, release to erase" app:defaultValue="true" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat app:key="paw_trail" app:title="Running cat"
+            app:summary="A cat chases your finger while you Prowl" app:defaultValue="true" app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
-    <PreferenceCategory app:title="Feedback" app:iconSpaceReserved="false">
-        <SwitchPreferenceCompat app:key="sound" app:title="Sound" app:defaultValue="false" app:iconSpaceReserved="false" />
-        <SwitchPreferenceCompat app:key="vibrate" app:title="Vibration" app:defaultValue="true" app:iconSpaceReserved="false" />
-        <SeekBarPreference app:key="vibrate_ms" app:title="Vibration strength" app:defaultValue="12"
-            app:min="4" android:max="40" app:dependency="vibrate"
-            app:iconSpaceReserved="false"/>
-        <SwitchPreferenceCompat app:key="key_preview" app:title="Character preview" app:defaultValue="true" app:iconSpaceReserved="false" />
+    <PreferenceCategory app:title="Feel" app:iconSpaceReserved="false">
+        <SwitchPreferenceCompat app:key="sound" app:title="Key sound" app:defaultValue="false" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat app:key="vibrate" app:title="Haptics" app:defaultValue="true" app:iconSpaceReserved="false" />
+        <SeekBarPreference app:key="vibrate_ms" app:title="Haptic strength" app:defaultValue="12"
+            app:min="4" android:max="40" app:dependency="vibrate" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat app:key="key_preview" app:title="Key pop-up" app:defaultValue="true" app:iconSpaceReserved="false" />
         <SeekBarPreference app:key="long_press_ms" app:title="Long-press delay (ms)" app:defaultValue="300"
             app:min="150" android:max="800" app:showSeekBarValue="true" app:seekBarIncrement="50"
-            app:iconSpaceReserved="false"/>
+            app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
-    <PreferenceCategory app:title="Clipboard" app:iconSpaceReserved="false">
-        <SwitchPreferenceCompat app:key="clipboard_history" app:title="Clipboard history"
-            app:summary="Keep the last 30 things you copied (passwords are never saved)" app:defaultValue="true" app:iconSpaceReserved="false" />
+    <PreferenceCategory app:title="Stash" app:iconSpaceReserved="false">
+        <SwitchPreferenceCompat app:key="clipboard_history" app:title="Keep copied text"
+            app:summary="Your last 30 copies. Passwords are never kept." app:defaultValue="true" app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="About" app:iconSpaceReserved="false">
-        <Preference app:key="about" app:title="PawKeys 🐾" app:selectable="false" app:iconSpaceReserved="false"
+        <Preference app:key="about" app:title="PawKeys" app:selectable="false" app:iconSpaceReserved="false"
             app:summary="Word list derived from FrequencyWords by Hermit Dave (CC BY-SA 4.0). Icons: Material Symbols (Apache 2.0)." />
     </PreferenceCategory>
 </PreferenceScreen>

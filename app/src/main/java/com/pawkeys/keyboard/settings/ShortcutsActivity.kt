@@ -27,14 +27,14 @@ class ShortcutsActivity : AppCompatActivity() {
         store = ShortcutStore(this)
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         root.addView(MaterialToolbar(this).apply {
-            title = "Text shortcuts"
+            title = "Tricks"
             setNavigationIcon(androidx.appcompat.R.drawable.abc_ic_ab_back_material)
             setNavigationOnClickListener { finish() }
         })
         list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         root.addView(ScrollView(this).apply { addView(list) }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
         root.addView(MaterialButton(this).apply {
-            text = "Add shortcut"
+            text = "Add trick"
             setOnClickListener { edit(null, null) }
         }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
             setMargins((16 * dp).toInt(), (8 * dp).toInt(), (16 * dp).toInt(), (16 * dp).toInt())
@@ -53,7 +53,7 @@ class ShortcutsActivity : AppCompatActivity() {
         val all = store.all()
         if (all.isEmpty()) {
             list.addView(TextView(this).apply {
-                text = "No shortcuts yet"
+                text = "No tricks yet"
                 gravity = Gravity.CENTER
                 setPadding(0, (48 * dp).toInt(), 0, 0)
             })
@@ -82,8 +82,8 @@ class ShortcutsActivity : AppCompatActivity() {
                 inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
             })
         }
-        val shortField = field("Shortcut (e.g. omw)", shortcut)
-        val expField = field("Expanded phrase", expansion)
+        val shortField = field("Short code (e.g. omw)", shortcut)
+        val expField = field("Expands to", expansion)
         val form = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(pad, pad / 2, pad, 0)
@@ -91,7 +91,7 @@ class ShortcutsActivity : AppCompatActivity() {
             addView(expField)
         }
         val dialog = AlertDialog.Builder(this)
-            .setTitle(if (shortcut == null) "Add shortcut" else "Edit shortcut")
+            .setTitle(if (shortcut == null) "Add trick" else "Edit trick")
             .setView(form)
             .setPositiveButton("Save") { _, _ ->
                 val s = shortField.editText?.text?.toString()?.trim().orEmpty()

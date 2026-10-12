@@ -828,7 +828,7 @@ class PawKeysIME : InputMethodService(),
     override fun onSuggestionLongPressed(suggestion: Suggestion) {
         if (suggestion.isShortcut) return
         userDict.block(suggestion.word)
-        Toast.makeText(this, "“${suggestion.word}” won't be suggested again", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "“${suggestion.word}” removed from Hunches", Toast.LENGTH_SHORT).show()
         updateSuggestions()
     }
 
@@ -899,7 +899,7 @@ class PawKeysIME : InputMethodService(),
             PawMenuPanel.Item.NUMBER_ROW -> prefs.numberRow = !prefs.numberRow
             PawMenuPanel.Item.GESTURES -> {
                 prefs.gestureMode = when (prefs.gestureMode) { "fleksy" -> "glide"; "glide" -> "off"; else -> "fleksy" }
-                val name = when (prefs.gestureMode) { "glide" -> "Swipe typing on"; "off" -> "Gestures off"; else -> "Fleksy gestures on" }
+                val name = when (prefs.gestureMode) { "glide" -> "Prowl on: swipe to type"; "off" -> "Gestures off"; else -> "Flicks on" }
                 Toast.makeText(this, name, Toast.LENGTH_SHORT).show()
                 openPanel(Panel.MENU)
             }
@@ -1148,5 +1148,5 @@ class PawKeysIME : InputMethodService(),
 }
 
 object UiDims {
-    fun stripHeight(ctx: android.content.Context) = (46 * ctx.resources.displayMetrics.density).toInt()
+    fun stripHeight(ctx: android.content.Context) = (48 * ctx.resources.displayMetrics.density).toInt()
 }

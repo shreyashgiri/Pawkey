@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string-array name="theme_names">
-        <item>Follow system (Calico / Tuxedo)</item>
+        <item>Auto (Calico by day, Tuxedo by night)</item>
         <item>Calico (light)</item>
         <item>Tuxedo (dark)</item>
         <item>Siamese (cream)</item>
         <item>Ragdoll (blue)</item>
-        <item>Black Panther (AMOLED)</item>
+        <item>Panther (pure black)</item>
         <item>High contrast</item>
     </string-array>
     <string-array name="theme_values">
@@ -20,8 +20,8 @@
     </string-array>
     <string-array name="one_handed_names">
         <item>Off</item>
-        <item>Left hand</item>
-        <item>Right hand</item>
+        <item>Left paw</item>
+        <item>Right paw</item>
     </string-array>
     <string-array name="one_handed_values">
         <item>off</item>
@@ -29,8 +29,8 @@
         <item>right</item>
     </string-array>
     <string-array name="gesture_names">
-        <item>Fleksy gestures (flick to space, delete, cycle)</item>
-        <item>Swipe typing (draw words)</item>
+        <item>Flicks</item>
+        <item>Prowl (swipe to type)</item>
         <item>Off</item>
     </string-array>
     <string-array name="gesture_values">

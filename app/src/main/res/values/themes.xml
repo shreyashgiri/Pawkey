@@ -1,9 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Settings app: neutral surfaces, a single ginger accent. -->
     <style name="Theme.PawKeys" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/paw_accent</item>
-        <item name="colorSecondary">@color/paw_accent</item>
-        <item name="colorPrimaryContainer">#FFE3CC</item>
+        <item name="colorPrimary">#D9773A</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#D9773A</item>
+        <item name="colorPrimaryContainer">#FBE6D7</item>
         <item name="colorOnPrimaryContainer">#4A2500</item>
+        <item name="android:colorBackground">#F6F6F8</item>
+        <item name="colorSurface">#F6F6F8</item>
+        <item name="colorSurfaceContainer">#FFFFFF</item>
+        <item name="colorSurfaceContainerHigh">#FFFFFF</item>
+        <item name="colorSurfaceContainerHighest">#ECEDF0</item>
+        <item name="colorOnSurface">#1A1B1F</item>
+        <item name="colorOnSurfaceVariant">#6B6E76</item>
+        <item name="colorOutline">#C9CBD1</item>
+        <item name="android:statusBarColor">#F6F6F8</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>

@@ -23,7 +23,7 @@ import com.pawkeys.keyboard.KeyboardTheme
 object UiKit {
     fun dp(ctx: Context, v: Float) = (v * ctx.resources.displayMetrics.density).toInt()
 
-    fun keyBackground(ctx: Context, theme: KeyboardTheme, color: Int, radiusDp: Float = 8f): RippleDrawable {
+    fun keyBackground(ctx: Context, theme: KeyboardTheme, color: Int, radiusDp: Float = 12f): RippleDrawable {
         val shape = GradientDrawable().apply {
             cornerRadius = dp(ctx, radiusDp).toFloat()
             setColor(color)
@@ -52,32 +52,64 @@ object UiKit {
         gravity = Gravity.CENTER
         setTextColor(textColor)
         setTextSize(TypedValue.COMPLEX_UNIT_SP, sizeSp)
-        if (bold) typeface = Typeface.DEFAULT_BOLD
+        typeface = if (bold) MEDIUM else REGULAR
+        val pad = dp(ctx, 6f)
+        setPadding(pad, 0, pad, 0)
         maxLines = 1
         ellipsize = TextUtils.TruncateAt.END
         this.background = keyBackground(ctx, theme, background)
         setOnClickListener { onClick() }
     }
 
-    /** Icon on top, label below; used by the Paw menu and theme picker. */
+    val REGULAR: Typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+    val MEDIUM: Typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+
+    /** Den item: an icon in a soft circle with a small label underneath. */
     fun tile(ctx: Context, theme: KeyboardTheme, icon: Int, label: String, highlighted: Boolean, onClick: () -> Unit) =
         LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            background = keyBackground(ctx, theme, if (highlighted) blendAccent(theme) else theme.key, 12f)
+            background = keyBackground(ctx, theme, theme.background, 14f)
             setOnClickListener { onClick() }
             contentDescription = label
             addView(ImageView(ctx).apply {
-                setImageDrawable(ContextCompat.getDrawable(ctx, icon)!!.mutate().apply { setTint(theme.accent) })
-            }, LinearLayout.LayoutParams(dp(ctx, 24f), dp(ctx, 24f)))
+                setImageDrawable(ContextCompat.getDrawable(ctx, icon)!!.mutate().apply { setTint(if (highlighted) theme.accent else theme.keyText) })
+                scaleType = ImageView.ScaleType.CENTER
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(if (highlighted) blendAccent(theme) else theme.key)
+                    if (theme.id == KeyboardTheme.HIGH_CONTRAST.id) setStroke(dp(ctx, 1f), theme.border)
+                }
+            }, LinearLayout.LayoutParams(dp(ctx, 40f), dp(ctx, 40f)))
             addView(TextView(ctx).apply {
                 text = label
-                setTextColor(theme.keyText)
+                setTextColor(theme.stripText)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
+                typeface = REGULAR
                 gravity = Gravity.CENTER
-                maxLines = 2
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
                 setPadding(dp(ctx, 2f), dp(ctx, 4f), dp(ctx, 2f), 0)
             })
+        }
+
+    /** Panel header: a quiet title on the left and an optional text action on the right. */
+    fun header(ctx: Context, theme: KeyboardTheme, title: String, action: String? = null, onAction: () -> Unit = {}) =
+        LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(ctx, 18f), 0, dp(ctx, 8f), 0)
+            addView(TextView(ctx).apply {
+                text = title
+                setTextColor(theme.keyText)
+                typeface = MEDIUM
+                letterSpacing = 0.02f
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            if (action != null) {
+                addView(textButton(ctx, theme, action, background = theme.background, textColor = theme.accent, sizeSp = 13.5f, onClick = onAction),
+                    LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(ctx, 36f)))
+            }
         }
 
     fun blendAccent(theme: KeyboardTheme): Int {
