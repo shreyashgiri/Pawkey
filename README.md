@@ -1,4 +1,4 @@
-# Pawkey 🐾
+# PawKeys 🐾
 
 An Android keyboard that combines **Fleksy's gestures** with **Samsung Keyboard's features**. It looks like Samsung's One UI keyboard, with a light cat theme on top: paw prints, cat-coat theme names and a cat emoji tab.
 
@@ -57,7 +57,7 @@ Fleksy-style smart punctuation also applies: after a swipe-space or a picked sug
 ## Install and set up
 
 1. Build the APK (see below) or install `app-debug.apk` on your phone.
-2. Open **Pawkey** from the app drawer and follow the **Get started** steps: turn Pawkey on, then switch to it.
+2. Open **PawKeys** from the app drawer and follow the **Get started** steps: turn PawKeys on, then switch to it.
 3. Type in the test box at the top of the settings screen to try it out.
 
 ## Build
@@ -77,8 +77,8 @@ The tests include:
 ## Code layout
 
 ```
-app/src/main/java/com/pawkey/keyboard/
-  PawkeyIME.kt          the input method service: typing, autocorrect, gestures, panels
+app/src/main/java/com/pawkeys/keyboard/
+  PawKeysIME.kt          the input method service: typing, autocorrect, gestures, panels
   KeyboardView.kt       draws keys, handles taps, popups, flicks, swipe typing, spacebar/backspace swipes
   CandidateStrip.kt     Samsung-style toolbar / suggestion bar
   Key.kt                key model and layouts (QWERTY, symbols, number pad, phone)

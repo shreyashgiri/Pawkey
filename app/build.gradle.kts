@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.pawkey.keyboard"
+    namespace = "com.pawkeys.keyboard"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.pawkey.keyboard"
+        applicationId = "com.pawkeys.keyboard"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

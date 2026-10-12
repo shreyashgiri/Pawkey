@@ -3,8 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <PreferenceCategory app:title="Get started" app:key="setup" app:iconSpaceReserved="false">
-        <Preference app:key="setup_enable" app:title="1. Turn on Pawkey" app:iconSpaceReserved="false" />
-        <Preference app:key="setup_select" app:title="2. Switch to Pawkey" app:iconSpaceReserved="false" />
+        <Preference app:key="setup_enable" app:title="1. Turn on PawKeys" app:iconSpaceReserved="false" />
+        <Preference app:key="setup_select" app:title="2. Switch to PawKeys" app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="Look and feel" app:iconSpaceReserved="false">
@@ -75,7 +75,7 @@
     </PreferenceCategory>
 
     <PreferenceCategory app:title="About" app:iconSpaceReserved="false">
-        <Preference app:key="about" app:title="Pawkey 🐾" app:selectable="false" app:iconSpaceReserved="false"
+        <Preference app:key="about" app:title="PawKeys 🐾" app:selectable="false" app:iconSpaceReserved="false"
             app:summary="Word list derived from FrequencyWords by Hermit Dave (CC BY-SA 4.0). Icons: Material Symbols (Apache 2.0)." />
     </PreferenceCategory>
 </PreferenceScreen>

@@ -9,10 +9,10 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Pawkey">
+        android:theme="@style/Theme.PawKeys">
 
         <service
-            android:name=".PawkeyIME"
+            android:name=".PawKeysIME"
             android:exported="true"
             android:label="@string/app_name"
             android:permission="android.permission.BIND_INPUT_METHOD">
