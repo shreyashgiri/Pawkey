@@ -253,6 +253,14 @@ class ScreenshotTest {
         render(startIme("calico") { it.heightPercent = 85; it.numberRow = false }.second, "29_size_small")
     }
 
+    @Test fun emojiSearch() {
+        val (ime, view) = startIme()
+        ime.onToolbarAction(CandidateStrip.ToolbarAction.EMOJI)
+        ime.startEmojiSearch()
+        "cat".forEach { ime.onKey(Key(it.code, it.toString())) }
+        render(view, "65_emoji_search")
+    }
+
     @Test fun voice() {
         val (ime, view) = startIme()
         org.robolectric.Shadows.shadowOf(ime.application).grantPermissions(android.Manifest.permission.RECORD_AUDIO)

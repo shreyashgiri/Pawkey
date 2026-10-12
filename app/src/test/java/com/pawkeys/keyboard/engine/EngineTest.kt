@@ -93,4 +93,15 @@ class EngineTest {
         assertEquals(listOf("morning"), reloaded.predictNext("good"))
         dir.deleteRecursively()
     }
+
+    @Test fun emojiSearchFindsByNameWordAndCountry() {
+        val all = com.pawkeys.keyboard.panels.EmojiData.categories.flatMap { it.emojis }
+        val search = com.pawkeys.keyboard.panels.EmojiSearch
+        assertTrue("😻" in search.search("cat", all))
+        assertTrue("🍕" in search.search("pizza", all))
+        assertTrue("😂" in search.search("lol", all))
+        assertTrue("🇮🇳" in search.search("india", all))
+        assertTrue("😸" in search.search("grinning cat", all))
+        assertTrue(search.search("zzqx", all).isEmpty())
+    }
 }

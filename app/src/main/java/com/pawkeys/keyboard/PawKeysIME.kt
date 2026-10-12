@@ -43,6 +43,9 @@ import com.pawkeys.keyboard.stickers.StickerArt
 import com.pawkeys.keyboard.stickers.StickerPanel
 import java.io.File
 import com.pawkeys.keyboard.panels.ClipboardPanel
+import com.pawkeys.keyboard.panels.EmojiData
+import com.pawkeys.keyboard.panels.EmojiSearch
+import com.pawkeys.keyboard.panels.EmojiSearchBar
 import com.pawkeys.keyboard.panels.EmojiPanel
 import com.pawkeys.keyboard.panels.OneHandedRail
 import com.pawkeys.keyboard.panels.PawMenuPanel
@@ -373,6 +376,7 @@ class PawKeysIME : InputMethodService(),
 
     private fun handleText(raw: String) {
         if (translating) { translateType(raw); return }
+        if (searchingEmoji) { emojiQuery.append(raw); refreshEmojiSearch(); return }
         val ic = currentInputConnection ?: return
         punctIndex = -1
         var text = raw
@@ -447,6 +451,7 @@ class PawKeysIME : InputMethodService(),
 
     private fun handleSpace(wasSpace: Boolean) {
         if (translating) { translateType(" "); return }
+        if (searchingEmoji) { emojiQuery.append(' '); refreshEmojiSearch(); return }
         val ic = currentInputConnection ?: return
         punctIndex = -1
         if (composing.isNotEmpty()) {
@@ -475,6 +480,11 @@ class PawKeysIME : InputMethodService(),
 
     private fun handleDelete() {
         if (translating) { translateDelete(word = false); return }
+        if (searchingEmoji) {
+            if (emojiQuery.isNotEmpty()) emojiQuery.setLength(emojiQuery.length - 1)
+            refreshEmojiSearch()
+            return
+        }
         val ic = currentInputConnection ?: return
         punctIndex = -1
         lastAutoSpace = false
@@ -548,6 +558,7 @@ class PawKeysIME : InputMethodService(),
 
     private fun handleEnter() {
         if (translating) { onInsertTranslation(); return }
+        if (searchingEmoji) { closeEmojiSearch(); return }
         val ic = currentInputConnection ?: return
         if (composing.isNotEmpty()) commitComposing("", allowCorrect = false)
         lastAutoSpace = false
@@ -593,6 +604,11 @@ class PawKeysIME : InputMethodService(),
     // ---------------------------------------------------------------- gestures
 
     override fun onFlick(flick: Flick) {
+        if (searchingEmoji) {
+            if (flick == Flick.RIGHT) { emojiQuery.append(' '); refreshEmojiSearch() }
+            if (flick == Flick.LEFT) { emojiQuery.clear(); refreshEmojiSearch() }
+            return
+        }
         if (translating) {
             when (flick) {
                 Flick.RIGHT -> translateType(" ")
@@ -758,6 +774,12 @@ class PawKeysIME : InputMethodService(),
         val words = decoder.decode(xs, ys, keyboardView.letterCenters(), keyboardView.unitWidth, userDict.learned)
             .filterNot { isBlocked(it) }
         if (words.isEmpty()) return
+        if (searchingEmoji) {
+            emojiQuery.setLength(0)
+            emojiQuery.append(words[0])
+            refreshEmojiSearch()
+            return
+        }
         if (translating) {
             if (translateBuffer.isNotEmpty() && !translateBuffer.endsWith(" ")) translateBuffer.append(' ')
             translateType(applyShift(words[0]))
@@ -937,7 +959,7 @@ class PawKeysIME : InputMethodService(),
         val height = keyboardView.height.takeIf { it > 0 } ?: keyboardView.desiredHeight()
         val view: View = when (p) {
             Panel.MENU -> PawMenuPanel(this, theme, prefs, ::onToolbarAction)
-            Panel.EMOJI -> EmojiPanel(this, theme, prefs.sp, ::insertEmoji, ::handleDelete, ::closePanel)
+            Panel.EMOJI -> EmojiPanel(this, theme, prefs.sp, ::insertEmoji, ::handleDelete, ::closePanel, ::startEmojiSearch)
             Panel.CLIPBOARD -> ClipboardPanel(this, theme, clipboard, ::pasteClip, ::closePanel)
             Panel.TEXT_EDIT -> TextEditPanel(this, theme, this)
             Panel.THEMES -> ThemePanel(this, theme, prefs.theme, prefs.breed) { prefs.theme = it }
@@ -999,6 +1021,8 @@ class PawKeysIME : InputMethodService(),
     }
 
     private fun restoreStrip() {
+        emojiSearchBar = null
+        emojiQuery.clear()
         voiceBar = null
         recognizer?.destroy()
         recognizer = null
@@ -1046,6 +1070,37 @@ class PawKeysIME : InputMethodService(),
         if (composing.isNotEmpty()) commitComposing("", allowCorrect = false)
         ic.commitText(text, 1)
         closePanel()
+    }
+
+    // ---------------------------------------------------------------- emoji search
+
+    private var emojiSearchBar: EmojiSearchBar? = null
+    private val emojiQuery = StringBuilder()
+    internal val searchingEmoji get() = emojiSearchBar != null
+    private val allEmoji by lazy { EmojiData.categories.flatMap { it.emojis }.distinct() }
+
+    /** Emoji panel's search: the keys come back and the bar shows query + results. */
+    internal fun startEmojiSearch() {
+        if (root == null) return
+        closePanel()
+        restoreStrip()
+        val bar = EmojiSearchBar(this, theme, { e -> insertEmoji(e) }, ::closeEmojiSearch)
+        emojiSearchBar = bar
+        stripFrame.removeAllViews()
+        stripFrame.addView(bar, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT))
+        shift = ShiftState.OFF
+        keyboardView.shiftState = shift
+    }
+
+    private fun refreshEmojiSearch() {
+        val q = emojiQuery.toString()
+        emojiSearchBar?.show(q, if (q.isBlank()) emptyList() else EmojiSearch.search(q, allEmoji))
+    }
+
+    /** Back to the emoji panel. */
+    internal fun closeEmojiSearch() {
+        restoreStrip()
+        openPanel(Panel.EMOJI)
     }
 
     // ---------------------------------------------------------------- voice

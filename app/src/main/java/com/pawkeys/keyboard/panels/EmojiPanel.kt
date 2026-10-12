@@ -29,6 +29,7 @@ class EmojiPanel(
     private val onEmoji: (String) -> Unit,
     private val onDelete: () -> Unit,
     private val onBack: () -> Unit,
+    private val onSearch: () -> Unit = {},
 ) : LinearLayout(context) {
 
     private val grid = EmojiGrid(context)
@@ -57,6 +58,8 @@ class EmojiPanel(
 
         val bar = LinearLayout(context).apply { orientation = HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         bar.addView(UiKit.textButton(context, theme, "ABC") { onBack() }, UiKit.weighted(1.4f, 3f, context))
+        bar.addView(UiKit.iconButton(context, theme, R.drawable.ic_search, "Search emoji", background = theme.background, tint = theme.hintText) { onSearch() },
+            UiKit.weighted(1f, 0f, context))
         val categories = listOf(R.drawable.ic_schedule) + EmojiData.categories.map { it.icon }
         categories.forEachIndexed { i, icon ->
             val tab = ImageView(context).apply {
