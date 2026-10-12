@@ -1,0 +1,80 @@
+# Xcode project definition. GitHub Actions runs `xcodegen generate` to create
+# PawKeys.xcodeproj, then builds an unsigned .ipa (see .github/workflows/ios.yml).
+name: PawKeys
+options:
+  bundleIdPrefix: com.pawkeys
+  deploymentTarget:
+    iOS: "16.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    TARGETED_DEVICE_FAMILY: "1,2"
+targets:
+  PawKeys:
+    type: application
+    platform: iOS
+    sources:
+      - App
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: PawKeys
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen:
+          UIColorName: ""
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.pawkeys.app
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - target: PawKeysKeyboard
+        embed: true
+
+  PawKeysKeyboard:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Keyboard
+      # Shared with the Android app: the word list and the key sounds.
+      - path: ../app/src/main/assets/words_en.txt
+        buildPhase: resources
+      - path: ../app/src/main/res/raw/key_click.wav
+        buildPhase: resources
+      - path: ../app/src/main/res/raw/key_kitten.wav
+        buildPhase: resources
+      - path: ../app/src/main/res/raw/key_cat.wav
+        buildPhase: resources
+      - path: ../app/src/main/res/raw/key_duck.wav
+        buildPhase: resources
+    info:
+      path: Keyboard/Info.plist
+      properties:
+        CFBundleDisplayName: PawKeys
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.keyboard-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).KeyboardViewController
+          NSExtensionAttributes:
+            IsASCIICapable: false
+            PrefersRightToLeft: false
+            PrimaryLanguage: en-US
+            # "Allow Full Access": needed for sounds, Stash, stickers, GIFs and paste.
+            RequestsOpenAccess: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.pawkeys.app.keyboard
+        APPLICATION_EXTENSION_API_ONLY: YES
