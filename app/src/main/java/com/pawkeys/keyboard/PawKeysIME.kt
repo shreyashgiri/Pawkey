@@ -963,8 +963,13 @@ class PawKeysIME : InputMethodService(),
             CandidateStrip.ToolbarAction.SIZE -> showSizeBar()
             CandidateStrip.ToolbarAction.NUMBER_ROW -> prefs.numberRow = !prefs.numberRow
             CandidateStrip.ToolbarAction.GESTURES -> {
-                prefs.gestureMode = when (prefs.gestureMode) { "fleksy" -> "glide"; "glide" -> "off"; else -> "fleksy" }
-                val name = when (prefs.gestureMode) { "glide" -> "Prowl on: swipe to type"; "off" -> "Gestures off"; else -> "Flicks on" }
+                prefs.gestureMode = when (prefs.gestureMode) { "both" -> "fleksy"; "fleksy" -> "glide"; "glide" -> "off"; else -> "both" }
+                val name = when (prefs.gestureMode) {
+                    "both" -> "Flicks + Prowl: flick for space/delete, swipe to type"
+                    "glide" -> "Prowl only: swipe to type"
+                    "off" -> "Gestures off"
+                    else -> "Flicks only"
+                }
                 Toast.makeText(this, name, Toast.LENGTH_SHORT).show()
                 if (fromDen) openPanel(Panel.MENU)
             }

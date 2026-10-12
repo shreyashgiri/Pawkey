@@ -29,11 +29,13 @@
         <item>right</item>
     </string-array>
     <string-array name="gesture_names">
-        <item>Flicks</item>
+        <item>Flicks + Prowl (flick for space/delete, swipe to type)</item>
+        <item>Flicks only</item>
         <item>Prowl (swipe to type)</item>
         <item>Off</item>
     </string-array>
     <string-array name="gesture_values">
+        <item>both</item>
         <item>fleksy</item>
         <item>glide</item>
         <item>off</item>

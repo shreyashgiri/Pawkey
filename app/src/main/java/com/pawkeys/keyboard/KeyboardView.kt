@@ -9,6 +9,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.TypedValue
 import android.view.MotionEvent
 import android.view.View
@@ -74,7 +75,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     var keyBorders = false
     var heightScale = 1f
         set(v) { field = v; requestLayout() }
-    var gestureMode = "fleksy"
+    var gestureMode = "both"
     var spaceCursor = true
     var deleteSwipe = true
     var keyPreview = true
@@ -110,13 +111,15 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     private val icons = HashMap<Int, Drawable>()
 
     // ---- gesture state ----
-    private enum class Mode { NONE, TAP, POPUP, SPACE_CURSOR, DELETE_SWIPE, DELETE_REPEAT, GLIDE, FLICK, CONSUMED }
+    /** SWIPE = "Flicks + Prowl" mode, before we know which one the finger is doing. */
+    private enum class Mode { NONE, TAP, POPUP, SPACE_CURSOR, DELETE_SWIPE, DELETE_REPEAT, GLIDE, FLICK, SWIPE, CONSUMED }
 
     private var mode = Mode.NONE
     private var activePointer = -1
     private var downKey: Key? = null
     private var downX = 0f
     private var downY = 0f
+    private var downTime = 0L
     private var lastCursorX = 0f
     private var deleteWords = 0
     private var pressedKey: Key? = null
@@ -388,6 +391,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         activePointer = e.getPointerId(index)
         downX = e.getX(index)
         downY = e.getY(index)
+        downTime = SystemClock.uptimeMillis()
         lastCursorX = downX
         deleteWords = 0
         repeatCount = 0
@@ -445,6 +449,14 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
                         for (i in 1 until traceX.size) prowl.add(traceX[i], traceY[i])
                         addTrace(x, y)
                     }
+                    key.type == KeyType.CHAR && gestureMode == "both" && key.isLetter && dist > unitWidth * 0.6f -> {
+                        // Flick or Prowl? Decided by speed, length and straightness.
+                        handler.removeCallbacks(longPress)
+                        mode = Mode.SWIPE
+                        pressedKey = null
+                        previewKey = null
+                        addTrace(x, y)
+                    }
                     key.type == KeyType.CHAR && gestureMode == "fleksy" && dist > unitWidth * 0.7f -> {
                         handler.removeCallbacks(longPress)
                         mode = Mode.FLICK
@@ -482,6 +494,16 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
                 }
             }
             Mode.GLIDE -> addTrace(x, y)
+            Mode.SWIPE -> {
+                addTrace(x, y)
+                if (looksLikeProwl()) {
+                    // Clearly drawing a word: switch to Prowl and show the trail.
+                    mode = Mode.GLIDE
+                    prowl.start(traceX[0], traceY[0])
+                    for (i in 1 until traceX.size) prowl.add(traceX[i], traceY[i])
+                    invalidate()
+                }
+            }
             Mode.POPUP -> {
                 val idx = popupCells.indexOfFirst { x >= it.left && x < it.right && y >= it.top - rowHeight && y < it.bottom + rowHeight }
                 val sel = if (idx >= 0) idx else popupCells.indices.minByOrNull { abs(popupCells[it].centerX() - x) + abs(popupCells[it].centerY() - y) } ?: 0
@@ -516,6 +538,19 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
                 prowl.release()
                 listener.onGlide(traceX.toFloatArray(), traceY.toFloatArray())
             }
+            Mode.SWIPE -> {
+                addTrace(x, y)
+                if (isFlick()) {
+                    val dx = x - downX
+                    val dy = y - downY
+                    listener.onFlick(
+                        if (abs(dx) >= abs(dy)) (if (dx > 0) Flick.RIGHT else Flick.LEFT)
+                        else (if (dy > 0) Flick.DOWN else Flick.UP)
+                    )
+                } else {
+                    listener.onGlide(traceX.toFloatArray(), traceY.toFloatArray())
+                }
+            }
             Mode.FLICK -> {
                 val dx = x - downX
                 val dy = y - downY
@@ -531,6 +566,30 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
             else -> Unit
         }
         resetGesture()
+    }
+
+    private fun swipeLength(): Float {
+        var len = 0f
+        for (i in 1 until traceX.size) len += hypot(traceX[i] - traceX[i - 1], traceY[i] - traceY[i - 1])
+        return len
+    }
+
+    /** How straight the swipe is: 1 = a straight line, lower = curved or turning. */
+    private fun straightness(): Float {
+        val len = swipeLength()
+        if (len <= 0f) return 1f
+        return hypot(traceX.last() - traceX.first(), traceY.last() - traceY.first()) / len
+    }
+
+    /** A flick is quick, short and straight. */
+    private fun isFlick(): Boolean =
+        SystemClock.uptimeMillis() - downTime < FLICK_MAX_MS && swipeLength() < unitWidth * FLICK_MAX_KEYS && straightness() > 0.85f
+
+    /** Anything slow, long or turning is a word being drawn. */
+    private fun looksLikeProwl(): Boolean {
+        val len = swipeLength()
+        return SystemClock.uptimeMillis() - downTime > FLICK_MAX_MS || len > unitWidth * FLICK_MAX_KEYS ||
+            (len > unitWidth * 1.2f && straightness() < 0.85f)
     }
 
     private fun finishTap() {
@@ -609,5 +668,11 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         handler.removeCallbacksAndMessages(null)
+    }
+
+    companion object {
+        /** Flicks are faster than this and shorter than this many keys; anything else is Prowl. */
+        const val FLICK_MAX_MS = 260L
+        const val FLICK_MAX_KEYS = 2.4f
     }
 }

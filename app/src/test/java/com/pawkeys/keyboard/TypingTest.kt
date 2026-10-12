@@ -287,4 +287,39 @@ class TypingTest {
         val uri = ime.getSystemService(android.content.ClipboardManager::class.java).primaryClip!!.getItemAt(0).uri!!
         assert(uri.toString().endsWith("gif_g1.gif")) { uri.toString() }
     }
+
+    @Test fun flicksAndProwlTogether() {
+        Prefs(ime).gestureMode = "both"
+        val root = ime.onCreateInputView()
+        ime.onStartInputView(EditorInfo().apply { inputType = InputType.TYPE_CLASS_TEXT }, false)
+        root.measure(android.view.View.MeasureSpec.makeMeasureSpec(1080, android.view.View.MeasureSpec.EXACTLY),
+            android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED))
+        root.layout(0, 0, root.measuredWidth, root.measuredHeight)
+        val kv = generateSequence(listOf(root)) { level ->
+            level.flatMap { v -> (v as? android.view.ViewGroup)?.let { g -> (0 until g.childCount).map { g.getChildAt(it) } } ?: emptyList() }
+                .ifEmpty { null }
+        }.flatten().filterIsInstance<KeyboardView>().first()
+        val c = kv.letterCenters()
+        fun touch(action: Int, p: Pair<Float, Float>) {
+            val e = android.view.MotionEvent.obtain(0, android.os.SystemClock.uptimeMillis(), action, p.first, p.second, 0)
+            kv.dispatchTouchEvent(e); e.recycle()
+        }
+
+        // Prowl: a long swipe through h-e-l-o draws the word.
+        val path = "helo".map { c.getValue(it) }
+        touch(android.view.MotionEvent.ACTION_DOWN, path[0])
+        for (i in 0 until path.size - 1) for (st in 1..8) {
+            val t = st / 8f
+            touch(android.view.MotionEvent.ACTION_MOVE, path[i].first + (path[i + 1].first - path[i].first) * t to path[i].second + (path[i + 1].second - path[i].second) * t)
+        }
+        touch(android.view.MotionEvent.ACTION_UP, path.last())
+        assertEquals("hello", text.lowercase())
+
+        // Flick: a quick, short swipe right on a letter is a space.
+        val g = c.getValue('g')
+        touch(android.view.MotionEvent.ACTION_DOWN, g)
+        touch(android.view.MotionEvent.ACTION_MOVE, g.first + kv.unitWidth * 0.8f to g.second)
+        touch(android.view.MotionEvent.ACTION_UP, g.first + kv.unitWidth * 1.2f to g.second)
+        assertEquals("hello ", text.lowercase())
+    }
 }

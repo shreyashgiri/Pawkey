@@ -70,7 +70,7 @@ class PawMenuPanel(
                 else -> false
             }
             val label = when (a) {
-                Action.GESTURES -> when (prefs.gestureMode) { "glide" -> "Prowl"; "off" -> "No gestures"; else -> "Flicks" }
+                Action.GESTURES -> when (prefs.gestureMode) { "both" -> "Flicks+Prowl"; "glide" -> "Prowl"; "off" -> "No gestures"; else -> "Flicks" }
                 Action.SOUND -> if (prefs.sound) com.pawkeys.keyboard.Feedback.label(prefs.soundStyle) else "Silent"
                 else -> a.label
             }

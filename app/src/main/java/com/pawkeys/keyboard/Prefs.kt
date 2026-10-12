@@ -85,9 +85,9 @@ class Prefs(context: Context) {
     val blockOffensive get() = sp.getBoolean(BLOCK_OFFENSIVE, true)
     val nextWordPrediction get() = sp.getBoolean(NEXT_WORD, true)
 
-    /** "fleksy" (flick gestures), "glide" (swipe typing) or "off". */
+    /** "both" (Flicks + Prowl), "fleksy" (Flicks only), "glide" (Prowl only) or "off". */
     var gestureMode: String
-        get() = sp.getString(GESTURE_MODE, "fleksy")!!
+        get() = sp.getString(GESTURE_MODE, "both")!!
         set(v) = sp.edit().putString(GESTURE_MODE, v).apply()
     val spaceCursor get() = sp.getBoolean(SPACE_CURSOR, true)
     val deleteSwipe get() = sp.getBoolean(DELETE_SWIPE, true)

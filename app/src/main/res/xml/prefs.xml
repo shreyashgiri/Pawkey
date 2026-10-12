@@ -51,11 +51,11 @@
     </PreferenceCategory>
 
     <PreferenceCategory app:title="Gestures" app:iconSpaceReserved="false">
-        <ListPreference app:key="gesture_mode" app:title="Swipe on letters" app:defaultValue="fleksy"
+        <ListPreference app:key="gesture_mode" app:title="Swipe on letters" app:defaultValue="both"
             app:entries="@array/gesture_names" app:entryValues="@array/gesture_values"
             app:useSimpleSummaryProvider="true" app:iconSpaceReserved="false" />
         <Preference app:key="gesture_help" app:selectable="false" app:iconSpaceReserved="false"
-            app:summary="Flicks: right = space (twice = full stop) · left = delete word · down / up = next / previous hunch or punctuation.\nProwl: draw a word across the letters." />
+            app:summary="Flicks: a quick, short swipe. Right = space (twice = full stop) · left = delete word · down / up = next / previous hunch or punctuation.\nProwl: draw a word across the letters.\nFlicks + Prowl tells them apart by speed and length." />
         <SwitchPreferenceCompat app:key="space_cursor" app:title="Scoot"
             app:summary="Slide along the spacebar to move the cursor" app:defaultValue="true" app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat app:key="delete_swipe" app:title="Scratch"
