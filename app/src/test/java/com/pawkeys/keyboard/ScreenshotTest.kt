@@ -253,6 +253,18 @@ class ScreenshotTest {
         render(startIme("calico") { it.heightPercent = 85; it.numberRow = false }.second, "29_size_small")
     }
 
+    @Test fun customizeBar() {
+        val (ime, view) = startIme {
+            it.toolbarButtons = listOf(CandidateStrip.ToolbarAction.EMOJI, CandidateStrip.ToolbarAction.CLIPBOARD,
+                CandidateStrip.ToolbarAction.THEMES, CandidateStrip.ToolbarAction.SOUND)
+        }
+        render(view, "54_custom_bar")
+        ime.onToolbarAction(CandidateStrip.ToolbarAction.MENU)
+        layout(view)
+        view.findViewsWithText("Customize").first().performClick()
+        render(view, "55_den_customize")
+    }
+
     @Test fun breeds() {
         for (b in Breed.entries) {
             render(startIme("system") { it.breed = b }.second, "50_breed_${b.id}")

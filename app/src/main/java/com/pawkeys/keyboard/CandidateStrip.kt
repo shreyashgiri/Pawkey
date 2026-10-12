@@ -30,7 +30,10 @@ class CandidateStrip(context: Context, private val listener: Listener) : View(co
         fun onSuggestionLongPressed(suggestion: Suggestion)
     }
 
-    /** Everything that can live on the Whisker bar or in the Den. [label] is the PawKeys name. */
+    /**
+     * Every tool. All of them appear in the Den; any can be pinned to the Whisker
+     * bar (Den and Hide are always there). [label] is the PawKeys name.
+     */
     enum class ToolbarAction(val icon: Int, val label: String) {
         MENU(R.drawable.ic_pets, "Den"),
         EMOJI(R.drawable.ic_mood, "Emoji"),
@@ -38,8 +41,18 @@ class CandidateStrip(context: Context, private val listener: Listener) : View(co
         TEXT_EDIT(R.drawable.ic_edit_note, "Groom"),
         ONE_HANDED(R.drawable.ic_front_hand, "Single paw"),
         SIZE(R.drawable.ic_height, "Stretch"),
+        THEMES(R.drawable.ic_palette, "Coats"),
+        BREEDS(R.drawable.ic_keyboard, "Breeds"),
+        NUMBER_ROW(R.drawable.ic_dialpad, "Number row"),
+        GESTURES(R.drawable.ic_gesture, "Gestures"),
+        SOUND(R.drawable.ic_volume_up, "Sound"),
+        VIBRATION(R.drawable.ic_vibration, "Haptics"),
+        SHORTCUTS(R.drawable.ic_short_text, "Tricks"),
         SETTINGS(R.drawable.ic_settings, "Settings"),
-        HIDE(R.drawable.ic_keyboard_arrow_down, "Hide"),
+        HIDE(R.drawable.ic_keyboard_arrow_down, "Hide");
+
+        /** Can be pinned to the bar (Den and Hide are fixed). */
+        val pinnable get() = this != MENU && this != HIDE
     }
 
     var theme = KeyboardTheme.CALICO
@@ -137,12 +150,14 @@ class CandidateStrip(context: Context, private val listener: Listener) : View(co
         }
         val iconSize = dp(21f).toInt()
         val cy = height / 2f
+        // A panel opened from the Den whose tool isn't pinned lights up the Den paw.
+        val current = activeAction?.let { act -> if (items.any { it.first == act }) act else ToolbarAction.MENU }
         for ((a, cx) in items) {
             val r = RectF(cx - cell / 2, 0f, cx + cell / 2, height.toFloat())
             val index = slots.size
             slots += r
             slotActions += a
-            val active = a == activeAction
+            val active = a == current
             if (active || index == pressed) {
                 paint.color = if (active) theme.accent else theme.keyPressed
                 paint.alpha = if (active) 36 else 255
@@ -224,5 +239,6 @@ class CandidateStrip(context: Context, private val listener: Listener) : View(co
 
     companion object {
         val DEFAULT_BUTTONS = listOf(ToolbarAction.EMOJI, ToolbarAction.CLIPBOARD, ToolbarAction.TEXT_EDIT, ToolbarAction.ONE_HANDED)
+        const val MAX_BUTTONS = 5
     }
 }

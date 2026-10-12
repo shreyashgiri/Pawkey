@@ -16,6 +16,15 @@ class Prefs(context: Context) {
         get() = Breed.from(sp.getString(BREED, Breed.PAWKEYS.id))
         set(v) = sp.edit().putString(BREED, v.id).apply()
     val keyBorders get() = sp.getBoolean(KEY_BORDERS, false)
+
+    /** Buttons pinned to the Whisker bar, in order. */
+    var toolbarButtons: List<CandidateStrip.ToolbarAction>
+        get() {
+            val saved = sp.getString(TOOLBAR, null) ?: return CandidateStrip.DEFAULT_BUTTONS
+            return saved.split(',').mapNotNull { n -> CandidateStrip.ToolbarAction.entries.firstOrNull { it.name == n } }
+                .filter { it.pinnable }
+        }
+        set(v) = sp.edit().putString(TOOLBAR, v.joinToString(",") { it.name }).apply()
     var numberRow: Boolean
         get() = sp.getBoolean(NUMBER_ROW, false)
         set(v) = sp.edit().putBoolean(NUMBER_ROW, v).apply()
@@ -62,6 +71,7 @@ class Prefs(context: Context) {
     companion object {
         const val THEME = "theme"
         const val BREED = "breed"
+        const val TOOLBAR = "toolbar_buttons"
         const val KEY_BORDERS = "key_borders"
         const val NUMBER_ROW = "number_row"
         const val HINT_CHARS = "hint_chars"

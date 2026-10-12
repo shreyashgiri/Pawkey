@@ -174,6 +174,7 @@ class PawKeysIME : InputMethodService(),
             pawTrail = prefs.pawTrail
         }
         strip.theme = theme
+        strip.buttons = prefs.toolbarButtons
     }
 
     private fun rebuildView() {
@@ -192,6 +193,7 @@ class PawKeysIME : InputMethodService(),
             Prefs.GESTURE_MODE, Prefs.SPACE_CURSOR, Prefs.DELETE_SWIPE, Prefs.KEY_PREVIEW,
             Prefs.LONG_PRESS_MS, Prefs.PAW_TRAIL -> applyKeyboardSettings()
             SettingsActivity.KEY_LEARNED_RESET -> userDict.clear()
+            Prefs.TOOLBAR -> if (root != null) strip.buttons = prefs.toolbarButtons
         }
     }
 
@@ -848,13 +850,32 @@ class PawKeysIME : InputMethodService(),
 
     override fun onToolbarAction(action: CandidateStrip.ToolbarAction) {
         feedback.tick()
+        val fromDen = panel == Panel.MENU
         when (action) {
             CandidateStrip.ToolbarAction.MENU -> togglePanel(Panel.MENU)
             CandidateStrip.ToolbarAction.EMOJI -> togglePanel(Panel.EMOJI)
             CandidateStrip.ToolbarAction.CLIPBOARD -> togglePanel(Panel.CLIPBOARD)
             CandidateStrip.ToolbarAction.TEXT_EDIT -> togglePanel(Panel.TEXT_EDIT)
+            CandidateStrip.ToolbarAction.THEMES -> togglePanel(Panel.THEMES)
+            CandidateStrip.ToolbarAction.BREEDS -> togglePanel(Panel.BREEDS)
             CandidateStrip.ToolbarAction.ONE_HANDED -> toggleOneHanded()
             CandidateStrip.ToolbarAction.SIZE -> showSizeBar()
+            CandidateStrip.ToolbarAction.NUMBER_ROW -> prefs.numberRow = !prefs.numberRow
+            CandidateStrip.ToolbarAction.GESTURES -> {
+                prefs.gestureMode = when (prefs.gestureMode) { "fleksy" -> "glide"; "glide" -> "off"; else -> "fleksy" }
+                val name = when (prefs.gestureMode) { "glide" -> "Prowl on: swipe to type"; "off" -> "Gestures off"; else -> "Flicks on" }
+                Toast.makeText(this, name, Toast.LENGTH_SHORT).show()
+                if (fromDen) openPanel(Panel.MENU)
+            }
+            CandidateStrip.ToolbarAction.SOUND -> {
+                prefs.sound = !prefs.sound
+                if (fromDen) openPanel(Panel.MENU) else Toast.makeText(this, if (prefs.sound) "Key sound on" else "Key sound off", Toast.LENGTH_SHORT).show()
+            }
+            CandidateStrip.ToolbarAction.VIBRATION -> {
+                prefs.vibrate = !prefs.vibrate
+                if (fromDen) openPanel(Panel.MENU) else Toast.makeText(this, if (prefs.vibrate) "Haptics on" else "Haptics off", Toast.LENGTH_SHORT).show()
+            }
+            CandidateStrip.ToolbarAction.SHORTCUTS -> openActivity(ShortcutsActivity::class.java)
             CandidateStrip.ToolbarAction.SETTINGS -> openActivity(SettingsActivity::class.java)
             CandidateStrip.ToolbarAction.HIDE -> requestHideSelf(0)
         }
@@ -868,7 +889,7 @@ class PawKeysIME : InputMethodService(),
         closePanel()
         val height = keyboardView.height.takeIf { it > 0 } ?: keyboardView.desiredHeight()
         val view: View = when (p) {
-            Panel.MENU -> PawMenuPanel(this, theme, prefs, ::onMenuItem)
+            Panel.MENU -> PawMenuPanel(this, theme, prefs, ::onToolbarAction)
             Panel.EMOJI -> EmojiPanel(this, theme, prefs.sp, ::insertEmoji, ::handleDelete, ::closePanel)
             Panel.CLIPBOARD -> ClipboardPanel(this, theme, clipboard, ::pasteClip, ::closePanel)
             Panel.TEXT_EDIT -> TextEditPanel(this, theme, this)
@@ -881,7 +902,9 @@ class PawKeysIME : InputMethodService(),
         panel = p
         panelView = view
         strip.activeAction = when (p) {
-            Panel.MENU, Panel.THEMES, Panel.BREEDS -> CandidateStrip.ToolbarAction.MENU
+            Panel.MENU -> CandidateStrip.ToolbarAction.MENU
+            Panel.THEMES -> CandidateStrip.ToolbarAction.THEMES
+            Panel.BREEDS -> CandidateStrip.ToolbarAction.BREEDS
             Panel.EMOJI -> CandidateStrip.ToolbarAction.EMOJI
             Panel.CLIPBOARD -> CandidateStrip.ToolbarAction.CLIPBOARD
             Panel.TEXT_EDIT -> CandidateStrip.ToolbarAction.TEXT_EDIT
@@ -898,30 +921,6 @@ class PawKeysIME : InputMethodService(),
         strip.activeAction = null
         updateShift()
         updateSuggestions()
-    }
-
-    private fun onMenuItem(item: PawMenuPanel.Item) {
-        feedback.tick()
-        when (item) {
-            PawMenuPanel.Item.EMOJI -> openPanel(Panel.EMOJI)
-            PawMenuPanel.Item.CLIPBOARD -> openPanel(Panel.CLIPBOARD)
-            PawMenuPanel.Item.TEXT_EDIT -> openPanel(Panel.TEXT_EDIT)
-            PawMenuPanel.Item.THEMES -> openPanel(Panel.THEMES)
-            PawMenuPanel.Item.BREEDS -> openPanel(Panel.BREEDS)
-            PawMenuPanel.Item.ONE_HANDED -> toggleOneHanded()
-            PawMenuPanel.Item.SIZE -> showSizeBar()
-            PawMenuPanel.Item.NUMBER_ROW -> prefs.numberRow = !prefs.numberRow
-            PawMenuPanel.Item.GESTURES -> {
-                prefs.gestureMode = when (prefs.gestureMode) { "fleksy" -> "glide"; "glide" -> "off"; else -> "fleksy" }
-                val name = when (prefs.gestureMode) { "glide" -> "Prowl on: swipe to type"; "off" -> "Gestures off"; else -> "Flicks on" }
-                Toast.makeText(this, name, Toast.LENGTH_SHORT).show()
-                openPanel(Panel.MENU)
-            }
-            PawMenuPanel.Item.SOUND -> { prefs.sound = !prefs.sound; openPanel(Panel.MENU) }
-            PawMenuPanel.Item.VIBRATION -> { prefs.vibrate = !prefs.vibrate; openPanel(Panel.MENU) }
-            PawMenuPanel.Item.SHORTCUTS -> openActivity(ShortcutsActivity::class.java)
-            PawMenuPanel.Item.SETTINGS -> openActivity(SettingsActivity::class.java)
-        }
     }
 
     private fun toggleOneHanded() {

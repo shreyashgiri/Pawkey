@@ -24,60 +24,106 @@ private fun LinearLayout.grid(tiles: List<View>, columns: Int) {
     }
 }
 
-/** The Den: every PawKeys tool one tap away, opened from the paw on the Whisker bar. */
+/**
+ * The Den: every PawKeys tool one tap away, opened from the paw on the Whisker bar.
+ * "Customize" switches to pinning mode: tap tools to add them to the bar (numbered
+ * in bar order) or take them off.
+ */
 @SuppressLint("ViewConstructor")
-class PawMenuPanel(context: Context, theme: KeyboardTheme, prefs: Prefs, private val onAction: (Item) -> Unit) : LinearLayout(context) {
-    enum class Item { EMOJI, CLIPBOARD, TEXT_EDIT, ONE_HANDED, SIZE, THEMES, BREEDS, NUMBER_ROW, GESTURES, SOUND, VIBRATION, SHORTCUTS, SETTINGS }
+class PawMenuPanel(
+    context: Context,
+    private val theme: KeyboardTheme,
+    private val prefs: Prefs,
+    private val onAction: (Action) -> Unit,
+) : LinearLayout(context) {
+    private var customizing = false
+    private val body = LinearLayout(context).apply { orientation = VERTICAL }
 
     init {
         orientation = VERTICAL
         setBackgroundColor(theme.background)
         val pad = UiKit.dp(context, 6f)
         setPadding(pad, 0, pad, pad)
-        addView(UiKit.header(context, theme, "Den"), LayoutParams(LayoutParams.MATCH_PARENT, UiKit.dp(context, 38f)))
-        val gesture = when (prefs.gestureMode) { "glide" -> "Prowl"; "off" -> "No gestures"; else -> "Flicks" }
-        val tiles = listOf(
-            Triple(Item.EMOJI, R.drawable.ic_mood, "Emoji"),
-            Triple(Item.CLIPBOARD, R.drawable.ic_content_paste, "Stash"),
-            Triple(Item.TEXT_EDIT, R.drawable.ic_edit_note, "Groom"),
-            Triple(Item.ONE_HANDED, R.drawable.ic_front_hand, "Single paw"),
-            Triple(Item.SIZE, R.drawable.ic_height, "Stretch"),
-            Triple(Item.THEMES, R.drawable.ic_palette, "Coats"),
-            Triple(Item.BREEDS, R.drawable.ic_keyboard, "Breeds"),
-            Triple(Item.NUMBER_ROW, R.drawable.ic_dialpad, "Number row"),
-            Triple(Item.GESTURES, R.drawable.ic_gesture, gesture),
-            Triple(Item.SOUND, R.drawable.ic_volume_up, "Sound"),
-            Triple(Item.VIBRATION, R.drawable.ic_vibration, "Haptics"),
-            Triple(Item.SHORTCUTS, R.drawable.ic_short_text, "Tricks"),
-            Triple(Item.SETTINGS, R.drawable.ic_settings, "Settings"),
-        ).map { (item, icon, label) ->
-            val on = when (item) {
-                Item.NUMBER_ROW -> prefs.numberRow
-                Item.SOUND -> prefs.sound
-                Item.VIBRATION -> prefs.vibrate
-                Item.ONE_HANDED -> prefs.oneHanded != "off"
-                Item.GESTURES -> prefs.gestureMode != "off"
+        addView(android.widget.ScrollView(context).apply {
+            isVerticalScrollBarEnabled = false
+            addView(body)
+        }, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        render()
+    }
+
+    private fun render() {
+        body.removeAllViews()
+        body.addView(
+            if (customizing) UiKit.header(context, theme, "Tap to pin to your bar", "Done") { customizing = false; render() }
+            else UiKit.header(context, theme, "Den", "Customize") { customizing = true; render() },
+            LayoutParams(LayoutParams.MATCH_PARENT, UiKit.dp(context, 38f)),
+        )
+        val pinned = prefs.toolbarButtons
+        val tiles = Action.entries.filter { it.pinnable }.map { a ->
+            val on = when (a) {
+                Action.NUMBER_ROW -> prefs.numberRow
+                Action.SOUND -> prefs.sound
+                Action.VIBRATION -> prefs.vibrate
+                Action.ONE_HANDED -> prefs.oneHanded != "off"
+                Action.GESTURES -> prefs.gestureMode != "off"
                 else -> false
             }
-            UiKit.tile(context, theme, icon, label, on) { onAction(item) }
+            val label = if (a == Action.GESTURES) when (prefs.gestureMode) { "glide" -> "Prowl"; "off" -> "No gestures"; else -> "Flicks" } else a.label
+            val tile = UiKit.tile(context, theme, a.icon, label, if (customizing) a in pinned else on) {
+                if (customizing) togglePin(a) else onAction(a)
+            }
+            if (customizing) badge(tile, pinned.indexOf(a)) else tile
         }
-        val body = LinearLayout(context).apply { orientation = VERTICAL }
         tiles.chunked(COLUMNS).forEach { chunk ->
             val row = LinearLayout(context).apply { orientation = HORIZONTAL }
             chunk.forEach { row.addView(it, UiKit.weighted(1f, 3f, context)) }
             repeat(COLUMNS - chunk.size) { row.addView(View(context), UiKit.weighted(1f, 3f, context)) }
             body.addView(row, LayoutParams(LayoutParams.MATCH_PARENT, UiKit.dp(context, 78f)))
         }
-        addView(android.widget.ScrollView(context).apply {
-            isVerticalScrollBarEnabled = false
-            addView(body)
-        }, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
+        if (customizing) {
+            body.addView(UiKit.textButton(context, theme, "Reset bar", background = theme.background, textColor = theme.hintText, sizeSp = 13f) {
+                prefs.toolbarButtons = com.pawkeys.keyboard.CandidateStrip.DEFAULT_BUTTONS
+                render()
+            }, LayoutParams(LayoutParams.MATCH_PARENT, UiKit.dp(context, 40f)))
+        }
+    }
+
+    private fun togglePin(a: Action) {
+        val list = prefs.toolbarButtons.toMutableList()
+        if (a in list) list.remove(a)
+        else if (list.size < com.pawkeys.keyboard.CandidateStrip.MAX_BUTTONS) list += a
+        else {
+            android.widget.Toast.makeText(context, "The bar holds ${com.pawkeys.keyboard.CandidateStrip.MAX_BUTTONS} tools. Unpin one first.", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        prefs.toolbarButtons = list
+        render()
+    }
+
+    /** Pin badge: the tool's position on the bar, or a faint "+" if it isn't pinned. */
+    private fun badge(tile: View, position: Int): View = FrameLayout(context).apply {
+        addView(tile, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        addView(TextView(context).apply {
+            text = if (position >= 0) "${position + 1}" else "+"
+            gravity = Gravity.CENTER
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+            typeface = UiKit.MEDIUM
+            setTextColor(if (position >= 0) theme.onAccent else theme.hintText)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(if (position >= 0) theme.accent else theme.functionKey)
+            }
+        }, FrameLayout.LayoutParams(UiKit.dp(context, 18f), UiKit.dp(context, 18f), Gravity.TOP or Gravity.END).apply {
+            setMargins(0, UiKit.dp(context, 2f), UiKit.dp(context, 10f), 0)
+        })
     }
 
     companion object {
         private const val COLUMNS = 5
     }
 }
+
+private typealias Action = com.pawkeys.keyboard.CandidateStrip.ToolbarAction
 
 /** Coats: a mini keyboard preview per colour theme. */
 @SuppressLint("ViewConstructor")
