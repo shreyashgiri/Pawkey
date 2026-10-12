@@ -66,6 +66,11 @@
 
     <PreferenceCategory app:title="Feel" app:iconSpaceReserved="false">
         <SwitchPreferenceCompat app:key="sound" app:title="Key sound" app:defaultValue="false" app:iconSpaceReserved="false" />
+        <ListPreference app:key="sound_style" app:title="Sound" app:defaultValue="click" app:dependency="sound"
+            app:entries="@array/sound_names" app:entryValues="@array/sound_values"
+            app:useSimpleSummaryProvider="true" app:iconSpaceReserved="false" />
+        <SeekBarPreference app:key="sound_volume" app:title="Sound volume" app:defaultValue="60"
+            app:min="10" android:max="100" app:dependency="sound" app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat app:key="vibrate" app:title="Haptics" app:defaultValue="true" app:iconSpaceReserved="false" />
         <SeekBarPreference app:key="vibrate_ms" app:title="Haptic strength" app:defaultValue="12"
             app:min="4" android:max="40" app:dependency="vibrate" app:iconSpaceReserved="false" />

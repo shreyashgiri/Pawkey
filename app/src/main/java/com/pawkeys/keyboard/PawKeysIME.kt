@@ -114,6 +114,7 @@ class PawKeysIME : InputMethodService(),
     override fun onDestroy() {
         prefs.sp.unregisterOnSharedPreferenceChangeListener(this)
         clipboard.release()
+        feedback.release()
         userDict.save()
         super.onDestroy()
     }
@@ -868,8 +869,12 @@ class PawKeysIME : InputMethodService(),
                 if (fromDen) openPanel(Panel.MENU)
             }
             CandidateStrip.ToolbarAction.SOUND -> {
-                prefs.sound = !prefs.sound
-                if (fromDen) openPanel(Panel.MENU) else Toast.makeText(this, if (prefs.sound) "Key sound on" else "Key sound off", Toast.LENGTH_SHORT).show()
+                // Cycle Silent -> Click -> Kitten -> Cat -> Duck, playing each as a preview.
+                val current = if (prefs.sound) prefs.soundStyle else "off"
+                val next = Feedback.STYLES[(Feedback.STYLES.indexOf(current).coerceAtLeast(0) + 1) % Feedback.STYLES.size]
+                prefs.sound = next != "off"
+                if (next != "off") { prefs.soundStyle = next; feedback.preview(next) }
+                if (fromDen) openPanel(Panel.MENU) else Toast.makeText(this, "Key sound: ${Feedback.label(next)}", Toast.LENGTH_SHORT).show()
             }
             CandidateStrip.ToolbarAction.VIBRATION -> {
                 prefs.vibrate = !prefs.vibrate

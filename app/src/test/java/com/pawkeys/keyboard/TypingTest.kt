@@ -174,4 +174,16 @@ class TypingTest {
         ime.moveCursor(-1, 0, select = false)
         assertEquals(0, field.selectionStart)
     }
+
+    @Test fun typingWithEverySoundStyle() {
+        val prefs = Prefs(ime)
+        prefs.sound = true
+        for (style in listOf("click", "kitten", "cat", "duck", "system")) {
+            prefs.soundStyle = style
+            ime.onKeyDown(keys.getValue('a'.code))
+            ime.onKeyDown(keys.getValue(Codes.DELETE))
+        }
+        type("ok")
+        assertEquals("Ok", text)
+    }
 }

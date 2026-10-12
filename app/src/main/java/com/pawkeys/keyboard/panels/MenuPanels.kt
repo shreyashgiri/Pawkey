@@ -68,7 +68,11 @@ class PawMenuPanel(
                 Action.GESTURES -> prefs.gestureMode != "off"
                 else -> false
             }
-            val label = if (a == Action.GESTURES) when (prefs.gestureMode) { "glide" -> "Prowl"; "off" -> "No gestures"; else -> "Flicks" } else a.label
+            val label = when (a) {
+                Action.GESTURES -> when (prefs.gestureMode) { "glide" -> "Prowl"; "off" -> "No gestures"; else -> "Flicks" }
+                Action.SOUND -> if (prefs.sound) com.pawkeys.keyboard.Feedback.label(prefs.soundStyle) else "Silent"
+                else -> a.label
+            }
             val tile = UiKit.tile(context, theme, a.icon, label, if (customizing) a in pinned else on) {
                 if (customizing) togglePin(a) else onAction(a)
             }
