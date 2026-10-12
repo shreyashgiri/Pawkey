@@ -27,6 +27,19 @@ jobs:
         working-directory: ios
         run: xcodegen generate
 
+      - name: Test on the iPhone simulator (+ screenshots)
+        working-directory: ios
+        run: |
+          set -o pipefail
+          SIM=$(xcrun simctl list devices available | grep -E "iPhone [0-9]+" | grep -m1 -oE "[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}")
+          echo "Simulator: $SIM"
+          mkdir -p "$PWD/shots"
+          SIMCTL_CHILD_SCREENSHOT_DIR="$PWD/shots" TEST_RUNNER_SCREENSHOT_DIR="$PWD/shots" \
+          xcodebuild test -project PawKeys.xcodeproj -scheme PawKeysTests -destination "id=$SIM" \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee test.log | grep -E "error:|Test Case.*(passed|failed)|XCTAssert|TEST (SUCCEEDED|FAILED)" || true
+          grep -q "TEST SUCCEEDED" test.log || { grep -E "error|failed" test.log | head -60; exit 1; }
+          ls -la shots || true
+
       - name: Build (unsigned)
         working-directory: ios
         run: |
@@ -58,7 +71,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete ios-latest --yes --cleanup-tag || true
-          gh release create ios-latest ios/PawKeys.ipa \
+          gh release create ios-latest ios/PawKeys.ipa ios/shots/*.png \
             --target "${{ github.sha }}" --prerelease \
             --title "PawKeys for iPhone (latest build)" \
             --notes "Unsigned .ipa built from ${{ github.ref_name }} @ ${GITHUB_SHA::7}. Install it with Sideloadly or AltStore: see ios/INSTALL.md."

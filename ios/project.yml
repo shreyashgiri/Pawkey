@@ -78,3 +78,29 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.pawkeys.app.keyboard
         APPLICATION_EXTENSION_API_ONLY: YES
+
+  # Runs on the iPhone simulator in CI: engine checks plus screenshots of the
+  # real keyboard views (attached to the ios-latest release).
+  PawKeysTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - Tests
+      - path: Keyboard
+        excludes:
+          - Info.plist
+      - path: ../app/src/main/assets/words_en.txt
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.pawkeys.tests
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  PawKeysTests:
+    build:
+      targets:
+        PawKeysTests: all
+    test:
+      targets:
+        - PawKeysTests

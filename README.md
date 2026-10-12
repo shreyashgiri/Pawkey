@@ -26,7 +26,22 @@ An Android keyboard with a calm, minimal look; **Fleksy's gestures**; **Samsung 
 - **Stretch**, **Single paw** and **Perch** (floating) keyboard.
 - Key sounds: click, kitten, cat or duck.
 
-## Install and set up
+## iPhone version 🍎
+
+PawKeys also runs on iPhone (iOS 16+). The Swift code is in [`ios/`](ios).
+
+**Download:** GitHub builds **PawKeys.ipa** on every change. Get it at
+**https://github.com/shreyashgiri/Pawkey/releases/tag/ios-latest**
+
+**Install:** iPhones need the .ipa signed with your Apple ID. You don't need a Mac: use **Sideloadly** on Windows. Step-by-step: **[ios/INSTALL.md](ios/INSTALL.md)**.
+
+**Differences from Android:** Apple doesn't let keyboards insert images, use the microphone or float, so on iPhone:
+- stickers and GIFs are copied for you to paste;
+- there's no voice typing or Perch;
+- Translate uses Apple's on-device translation (iOS 18+);
+- sounds, Stash and paste need "Allow Full Access".
+
+## Install and set up (Android)
 
 1. Install the APK (see Build).
 2. Open **PawKeys** and follow **Get started**: turn PawKeys on, then switch to it.
@@ -34,7 +49,9 @@ An Android keyboard with a calm, minimal look; **Fleksy's gestures**; **Samsung 
 
 ## Build
 
-Requires JDK 17+ and the Android SDK (API 35).
+**iPhone:** built by GitHub Actions on macOS (`.github/workflows/ios.yml`): XcodeGen generates the project from `ios/project.yml`, tests run on the iPhone simulator, and an unsigned .ipa is published to the `ios-latest` release.
+
+**Android:** requires JDK 17+ and the Android SDK (API 35).
 
 ```bash
 ./gradlew :app:assembleDebug        # app/build/outputs/apk/debug/app-debug.apk
