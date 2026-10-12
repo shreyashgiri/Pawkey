@@ -48,7 +48,15 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     var theme: KeyboardTheme = KeyboardTheme.CALICO
         set(v) { field = v; invalidate() }
     var layout: KeyboardLayout? = null
-        set(v) { field = v; cancelGesture(); requestLayout(); invalidate() }
+        set(v) {
+            field = v
+            cancelGesture()
+            // Position the new keys now: a same-sized layout (symbols 1/2 -> 2/2)
+            // won't trigger onSizeChanged, so its keys would never be placed.
+            if (width > 0) layoutKeys()
+            requestLayout()
+            invalidate()
+        }
     var shiftState = ShiftState.OFF
         set(v) { if (field != v) { field = v; invalidate() } }
     var enterIcon = R.drawable.ic_keyboard_return
