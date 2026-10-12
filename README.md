@@ -1,95 +1,71 @@
 # PawKeys 🐾
 
-An Android keyboard that combines **Fleksy's gestures** with **Samsung Keyboard's features**. It looks like Samsung's One UI keyboard, with a light cat theme on top: paw prints, cat-coat theme names and a cat emoji tab.
+An Android keyboard with a calm, minimal look; **Fleksy's gestures**; **Samsung Keyboard's features**; and a light cat theme.
 
 <p>
-  <img src="docs/ui/12_suggestions_autocorrect.png" width="49%" alt="Typing with suggestions">
-  <img src="docs/ui/18_swipe_typing.png" width="49%" alt="Swipe typing with paw-print trail">
+  <img src="docs/ui/01_keyboard.png" width="49%" alt="PawKeys keyboard">
+  <img src="docs/ui/18_swipe_typing.png" width="49%" alt="Prowl: swipe typing with a running cat">
 </p>
 <p>
-  <img src="docs/ui/20_paw_menu.png" width="49%" alt="Paw menu">
-  <img src="docs/ui/21_emoji.png" width="49%" alt="Emoji panel with cat tab">
-</p>
-<p>
-  <img src="docs/ui/16_longpress_accents.png" width="49%" alt="Long-press accents, dark theme">
-  <img src="docs/ui/24_text_editing.png" width="49%" alt="Text editing panel">
+  <img src="docs/ui/20_paw_menu.png" width="49%" alt="The Den">
+  <img src="docs/ui/62_translate.png" width="49%" alt="Translate">
 </p>
 
-![Themes](docs/ui/25_themes_panel.png)
+📘 **[Full UI guide and feature list → docs/UI.md](docs/UI.md)**: every screen, with PawKeys' names for each feature.
 
-📘 **[Full UI guide and feature list → docs/UI.md](docs/UI.md)**: every screen and panel, with measurements, colours and behaviour.
+## Highlights
 
-## Features
-
-### From Fleksy
-| Gesture | What it does |
-|---|---|
-| Swipe right | Space (and accepts the autocorrection) |
-| Swipe right twice | Full stop + space |
-| Swipe down / up after a full stop | Cycles `. , ? ! : ;` |
-| Swipe left | Deletes the previous word |
-| Swipe down / up after a word | Swaps it for the next or previous suggestion |
-| Swipe up (nothing to cycle) | Shift |
-
-Fleksy-style smart punctuation also applies: after a swipe-space or a picked suggestion, typing `. , ! ? ; :` moves the space so it comes after the punctuation.
-
-### From Samsung Keyboard
-- **Toolbar** above the keys: emoji, clipboard, text editing, one-handed mode, keyboard size, settings and hide. It switches to **three suggestions**, best one in the middle, while you type.
-- **Swipe typing**: draw a word across the keys. Turn it on in *Settings → Keyboard swipe controls* or from the Paw menu.
-- **Spacebar cursor control**: slide along the spacebar to move the cursor.
-- **Swipe left from backspace**: selects whole words, and deletes them when you let go.
-- **Alternative characters** shown on the keys. Long-press any key for symbols and accents (é, ñ, ß…).
-- **Clipboard history** with pinning. Text marked sensitive, like passwords from password managers, is never saved.
-- **Text editing panel**: arrow keys, select mode, select all, copy, cut, paste, undo, redo, Home and End.
-- **One-handed mode** (left or right) and **keyboard size** adjustment with a live preview.
-- **Text shortcuts**: type `omw`, then tap "On my way! 🐾" in the suggestion bar.
-- **Auto replace** with undo: press backspace straight after a correction to get your word back.
-- Auto-capitalisation, double-space full stop and an optional number row.
-- A **number pad** for number and phone fields. Email and URL fields get `@` or `/` in place of the comma key.
-- The keyboard **learns new words** and **predicts your next word**, all stored on your phone. Long-press a suggestion to stop it being offered.
-- Key sound, vibration (adjustable strength), character preview and long-press delay.
-- Password fields get no suggestions and no learning, and the number row appears automatically.
-- Long-press the spacebar to switch to another keyboard.
-
-### Cat touches 🐱
-- Six themes: **Calico** (light), **Tuxedo** (dark), **Siamese** (cream), **Ragdoll** (blue), **Black Panther** (AMOLED) and **High contrast**. *Follow system* switches between Calico and Tuxedo with dark mode.
-- A paw on the spacebar, a **Paw menu** with every feature in one grid, and paw prints along the swipe-typing trail.
-- A **Cats** emoji tab.
+- **Breeds** (styles): PawKeys (minimal), Samsung, iPhone and Google look and feel. Features stay the same in every breed.
+- **Coats** (colours): Calico, Tuxedo, Siamese, Ragdoll, Panther, High contrast, or Auto.
+- **Prowl** swipe typing with a curved trail and a little cat chasing your finger.
+- **Flicks**: swipe right for space, left to delete a word, down/up to cycle Hunches (suggestions).
+- **Hunches** and **Auto-fix**, which learn your words. Backspace undoes a fix.
+- **Den**: every tool in one place, with a customizable **Whisker bar**.
+- Emoji with search, **Whiskers** cat stickers, GIFs (GIPHY), on-device **Translate** and **Voice** typing.
+- **Stash** (clipboard history) and **Groom** (cursor, select, copy, paste, undo).
+- **Stretch**, **Single paw** and **Perch** (floating) keyboard.
+- Key sounds: click, kitten, cat or duck.
 
 ## Install and set up
 
-1. Build the APK (see below) or install `app-debug.apk` on your phone.
-2. Open **PawKeys** from the app drawer and follow the **Get started** steps: turn PawKeys on, then switch to it.
-3. Type in the test box at the top of the settings screen to try it out.
+1. Install the APK (see Build).
+2. Open **PawKeys** and follow **Get started**: turn PawKeys on, then switch to it.
+3. Optional: for GIFs, paste a free GIPHY key into **Settings → GIFs** (get one at developers.giphy.com).
 
 ## Build
 
-You need JDK 17+ and the Android SDK (API 35).
+Requires JDK 17+ and the Android SDK (API 35).
 
 ```bash
 ./gradlew :app:assembleDebug        # app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :app:testDebugUnitTest    # engine, typing and screenshot tests
+python3 tools/make_sounds.py        # regenerate the key sounds
 ```
 
-The tests include:
-- `EngineTest`: autocorrect, completions and swipe-typing decoding against the real word list.
-- `TypingTest`: drives the real keyboard service against a real `EditText` (autocorrect and undo, Fleksy gestures, double-space, shortcuts).
-- `ScreenshotTest`: renders every theme and panel to `app/build/screenshots/` with Robolectric. This is how the images above were made.
+The tests:
+- `EngineTest`: Auto-fix, Hunches, Prowl decoding, Memory, emoji search.
+- `TypingTest`: drives the real keyboard service against a real text field (Auto-fix and undo, Flicks, Groom copy/paste, Translate, Voice, stickers, GIFs).
+- `ScreenshotTest`: renders every screen into `app/build/screenshots/`. These renders are the images in `docs/ui`.
 
 ## Code layout
 
 ```
 app/src/main/java/com/pawkeys/keyboard/
-  PawKeysIME.kt          the input method service: typing, autocorrect, gestures, panels
-  KeyboardView.kt       draws keys, handles taps, popups, flicks, swipe typing, spacebar/backspace swipes
-  CandidateStrip.kt     Samsung-style toolbar / suggestion bar
-  Key.kt                key model and layouts (QWERTY, symbols, number pad, phone)
-  KeyboardTheme.kt      the cat-coat themes
-  engine/               dictionary + autocorrect, swipe-typing decoder, learned words
-  panels/               emoji, clipboard, text editing, paw menu, themes, size bar, one-handed rail
-  settings/             settings screen and text shortcut editor
+  PawKeysIME.kt        the keyboard service: typing, Auto-fix, gestures, panels, translate, voice
+  KeyboardView.kt      draws the keys; taps, pop-ups, Flicks, Prowl, Scoot, Scratch
+  ProwlTrail.kt        the curved swipe trail and the running cat
+  CandidateStrip.kt    the Whisker bar (tools and Hunches)
+  Breed.kt             keyboard styles      KeyboardTheme.kt  coats (colours)
+  Key.kt               layouts              Feedback.kt       sounds and haptics
+  engine/              dictionary, Auto-fix, Prowl decoder, Memory
+  panels/              Den, emoji (+search), Stash, Groom, Coats, Breeds, Stretch, Perch
+  stickers/ gifs/ translate/ voice/ settings/
+tools/make_sounds.py   generates the click / kitten / cat / duck sounds
 ```
 
 ## Credits
-- Word frequencies come from [FrequencyWords](https://github.com/hermitdave/FrequencyWords) by Hermit Dave (CC BY-SA 4.0), filtered and with contractions added.
+- Word frequencies come from [FrequencyWords](https://github.com/hermitdave/FrequencyWords) by Hermit Dave (CC BY-SA 4.0).
 - Icons are from [Material Symbols](https://github.com/google/material-design-icons) (Apache 2.0).
+- Translation uses [Google ML Kit](https://developers.google.com/ml-kit/language/translation).
+- GIFs are powered by [GIPHY](https://giphy.com).
+- Stickers, sounds and the running cat are original to PawKeys.
