@@ -123,4 +123,27 @@ class TypingTest {
         ime.onSuggestionPicked(0, com.pawkeys.keyboard.engine.Suggestion("On my way! 🐾", 0.0, isShortcut = true))
         assertEquals("On my way! 🐾 ", text)
     }
+
+    /** Regression: an app restarting input used to leave the keys unpositioned (blank keyboard). */
+    @Test fun keysStayVisibleWhenInputRestarts() {
+        val view = ime.onCreateInputView()
+        val info = EditorInfo().apply { inputType = InputType.TYPE_CLASS_TEXT }
+        ime.onStartInputView(info, false)
+        fun layout() {
+            view.measure(android.view.View.MeasureSpec.makeMeasureSpec(1080, android.view.View.MeasureSpec.EXACTLY),
+                android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED))
+            view.layout(0, 0, view.measuredWidth, view.measuredHeight)
+        }
+        layout()
+        type("a")
+        ime.onStartInputView(info, true)
+        layout()
+        val kv = generateSequence(listOf(view)) { level ->
+            level.flatMap { v -> (v as? android.view.ViewGroup)?.let { g -> (0 until g.childCount).map { g.getChildAt(it) } } ?: emptyList() }
+                .ifEmpty { null }
+        }.flatten().filterIsInstance<KeyboardView>().first()
+        val q = kv.letterCenters().getValue('q')
+        val p = kv.letterCenters().getValue('p')
+        assert(p.first > q.first) { "keys not laid out: q=$q p=$p" }
+    }
 }
