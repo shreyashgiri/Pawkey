@@ -17,6 +17,8 @@ An Android keyboard that combines **Fleksy's gestures** with **Samsung Keyboard'
 
 ![Themes](docs/ui/25_themes_panel.png)
 
+📘 **[Full UI guide and feature list → docs/UI.md](docs/UI.md)**: every screen and panel, with measurements, colours and behaviour.
+
 ## Features
 
 ### From Fleksy
