@@ -57,7 +57,8 @@ class EmojiPanel(
         addView(scroll, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
 
         val bar = LinearLayout(context).apply { orientation = HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-        bar.addView(UiKit.textButton(context, theme, "ABC") { onBack() }, UiKit.weighted(1.4f, 3f, context))
+        bar.addView(UiKit.textButton(context, theme, "ABC", sizeSp = 13f) { onBack() }.apply { setPadding(0, 0, 0, 0) },
+            UiKit.weighted(1.9f, 3f, context))
         bar.addView(UiKit.iconButton(context, theme, R.drawable.ic_search, "Search emoji", background = theme.background, tint = theme.hintText) { onSearch() },
             UiKit.weighted(1f, 0f, context))
         val categories = listOf(R.drawable.ic_schedule) + EmojiData.categories.map { it.icon }
