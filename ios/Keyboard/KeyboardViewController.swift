@@ -17,6 +17,9 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
     let panelHost = UIView()
     let barHost = UIView()
     private var heightConstraint: NSLayoutConstraint?
+    private var barHostHeight: NSLayoutConstraint?
+    /// Height of the area above the keys: the Whisker bar, or a taller bar (search, translate).
+    private(set) var topHeight: CGFloat = KeyboardViewController.barHeight
     private var keyboardLeading: NSLayoutConstraint?
     private var keyboardTrailing: NSLayoutConstraint?
     var rail: UIView?
@@ -74,6 +77,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
 
         keyboardLeading = keyboardView.leadingAnchor.constraint(equalTo: root.leadingAnchor)
         keyboardTrailing = keyboardView.trailingAnchor.constraint(equalTo: root.trailingAnchor)
+        barHostHeight = barHost.heightAnchor.constraint(equalToConstant: Self.barHeight)
         let h = root.heightAnchor.constraint(equalToConstant: 300)
         h.priority = UILayoutPriority(999)
         heightConstraint = h
@@ -86,11 +90,11 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
             barHost.topAnchor.constraint(equalTo: root.topAnchor),
             barHost.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             barHost.trailingAnchor.constraint(equalTo: root.trailingAnchor),
-            barHost.heightAnchor.constraint(equalToConstant: Self.barHeight),
+            barHostHeight!,
             keyboardView.topAnchor.constraint(equalTo: root.topAnchor),
             keyboardView.bottomAnchor.constraint(equalTo: root.bottomAnchor),
             keyboardLeading!, keyboardTrailing!,
-            panelHost.topAnchor.constraint(equalTo: whisker.bottomAnchor),
+            panelHost.topAnchor.constraint(equalTo: barHost.bottomAnchor),
             panelHost.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             panelHost.trailingAnchor.constraint(equalTo: root.trailingAnchor),
             panelHost.bottomAnchor.constraint(equalTo: root.bottomAnchor),
@@ -193,7 +197,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
         layoutId = id
         keyboardView.layout = Layouts.build(id, numberRow: prefs.numberRow, variant: variant, breed: breed, globe: needsInputModeSwitchKey)
         keyboardView.shift = id == .qwerty ? shift : .off
-        heightConstraint?.constant = Self.barHeight + keyboardView.keysHeight
+        heightConstraint?.constant = topHeight + keyboardView.keysHeight
     }
 
     // MARK: Field
@@ -715,8 +719,21 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
     var activePanel: Tool?
     var panelView: UIView?
 
-    func showBar(_ bar: UIView?) {
+    // Translate and GIF state (used in KeyboardViewController+Extras.swift).
+    let translateEngine = TranslateEngine()
+    var translateBar: TranslateBar?
+    var translateText = ""
+    var translated = ""
+    var translateStatus: String?
+    var translateWork: DispatchWorkItem?
+    var gifQuery: String?
+
+    func showBar(_ bar: UIView?, height: CGFloat = KeyboardViewController.barHeight) {
         barHost.subviews.forEach { $0.removeFromSuperview() }
+        topHeight = bar == nil ? Self.barHeight : height
+        barHostHeight?.constant = topHeight
+        keyboardView.topInset = topHeight
+        heightConstraint?.constant = topHeight + keyboardView.keysHeight
         if let b = bar {
             b.translatesAutoresizingMaskIntoConstraints = false
             barHost.addSubview(b)

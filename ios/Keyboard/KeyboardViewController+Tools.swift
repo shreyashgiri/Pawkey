@@ -102,7 +102,7 @@ extension KeyboardViewController {
             onClose()
         }
         bar.text = initial
-        showBar(bar)
+        showBar(bar, height: showsResults ? 96 : Self.barHeight)
         textSink = { [weak bar] t in guard let bar = bar else { return }; bar.text += t; onChange?(bar.text, bar) }
         deleteSink = { [weak bar] in guard let bar = bar else { return }; bar.text = String(bar.text.dropLast()); onChange?(bar.text, bar) }
         enterSink = { [weak self, weak bar] in
@@ -116,6 +116,8 @@ extension KeyboardViewController {
     }
 
     func endEntry() {
+        translateWork?.cancel()
+        translateBar = nil
         textSink = nil
         deleteSink = nil
         enterSink = nil
@@ -282,10 +284,5 @@ extension KeyboardViewController {
         startEntry(placeholder: "Type your GIPHY key, then return", symbol: "key", initial: prefs.giphyKey,
                    onEnter: { [weak self] t in self?.prefs.giphyKey = t; self?.openPanel(.settings) },
                    onClose: { [weak self] in self?.openPanel(.settings) })
-    }
-
-    /// Stickers, GIFs and Translate (KeyboardViewController+Extras.swift).
-    func openExtra(_ tool: Tool) {
-        toast("\(tool.label) is coming in the next update")
     }
 }
