@@ -115,14 +115,12 @@ final class KeyboardViewController: UIInputViewController, KeyboardViewDelegate,
         setLayout(baseLayout)
         updateShift()
         updateHunches()
-        startStashWatch()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         keyboardView.cancelGesture()
         memory.save()
-        stopStashWatch()
     }
 
     override func traitCollectionDidChange(_ previous: UITraitCollection?) {

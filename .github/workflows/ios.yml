@@ -42,6 +42,9 @@ jobs:
         run: |
           mkdir -p Payload
           cp -R build/Release-iphoneos/PawKeys.app Payload/
+          # The keyboard itself must be inside the app.
+          test -f Payload/PawKeys.app/PlugIns/PawKeysKeyboard.appex/PawKeysKeyboard
+          test -f Payload/PawKeys.app/PlugIns/PawKeysKeyboard.appex/words_en.txt
           zip -qry PawKeys.ipa Payload
           ls -la PawKeys.ipa
 
