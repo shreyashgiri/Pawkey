@@ -23,6 +23,13 @@ class TypingTest {
     private lateinit var keys: Map<Int, Key>
 
     @Before fun setUp() {
+        // FileProvider caches its folder per authority in a static; each Robolectric
+        // test gets a new data folder, so clear it (on a phone the folder never changes).
+        runCatching {
+            androidx.core.content.FileProvider::class.java.declaredFields
+                .filter { java.lang.reflect.Modifier.isStatic(it.modifiers) && Map::class.java.isAssignableFrom(it.type) }
+                .forEach { it.isAccessible = true; (it.get(null) as MutableMap<*, *>).clear() }
+        }
         val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
         field = EditText(activity).apply {
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
@@ -241,5 +248,43 @@ class TypingTest {
         rec.triggerOnResults(speech("see you soon"))
         assertEquals("Hi. See you soon", text)
         assert(!ime.listening)
+    }
+
+    private class FakeGifs : com.pawkeys.keyboard.gifs.GifSource {
+        var lastQuery: String? = "unset"
+        override fun list(query: String?, done: (List<com.pawkeys.keyboard.gifs.Gif>?, String?) -> Unit) {
+            lastQuery = query
+            done(listOf(com.pawkeys.keyboard.gifs.Gif("g1", "cat", "p", "f", 100, 100)), null)
+        }
+        override fun fetch(url: String, done: (ByteArray?) -> Unit) = done("GIF89a-fake".toByteArray())
+    }
+
+    @Test fun giphyResponseIsParsed() {
+        val json = """{"data":[{"id":"abc","title":"Cat GIF","images":{
+            "fixed_width_small":{"url":"https://media.giphy.com/s.gif","width":"100","height":"80"},
+            "downsized":{"url":"https://media.giphy.com/d.gif"}}},
+            {"id":"broken","images":{}}]}"""
+        val gifs = com.pawkeys.keyboard.gifs.GiphySource.parse(json)
+        assertEquals(1, gifs.size)
+        assertEquals("https://media.giphy.com/d.gif", gifs[0].full)
+        assertEquals(80, gifs[0].height)
+    }
+
+    @Test fun gifSearchAndSend() {
+        val fake = FakeGifs()
+        ime.gifSourceFactory = { fake }
+        android.preference.PreferenceManager.getDefaultSharedPreferences(ime).edit().putString(Prefs.GIPHY_KEY, "test-key").commit()
+        ime.onCreateInputView()
+        ime.onStartInputView(EditorInfo().apply { inputType = InputType.TYPE_CLASS_TEXT }, false)
+        ime.onToolbarAction(CandidateStrip.ToolbarAction.GIFS)
+        assertEquals(null, fake.lastQuery) // trending
+        ime.startGifSearch()
+        type("cat")
+        ime.onKey(keys.getValue(Codes.ENTER))
+        assertEquals("cat", fake.lastQuery)
+        assertEquals("", text) // the query never reaches the app
+        ime.sendGif(com.pawkeys.keyboard.gifs.Gif("g1", "cat", "p", "f", 100, 100))
+        val uri = ime.getSystemService(android.content.ClipboardManager::class.java).primaryClip!!.getItemAt(0).uri!!
+        assert(uri.toString().endsWith("gif_g1.gif")) { uri.toString() }
     }
 }

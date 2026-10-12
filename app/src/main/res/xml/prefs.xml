@@ -80,6 +80,14 @@
             app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
+    <PreferenceCategory app:title="GIFs" app:iconSpaceReserved="false">
+        <EditTextPreference app:key="giphy_key" app:title="GIPHY key"
+            app:dialogMessage="Create a free key at developers.giphy.com (Create an App, then API), then paste it here."
+            app:useSimpleSummaryProvider="true" app:iconSpaceReserved="false" />
+        <Preference app:key="giphy_help" app:selectable="false" app:iconSpaceReserved="false"
+            app:summary="GIFs are searched on GIPHY. Your key stays on this phone." />
+    </PreferenceCategory>
+
     <PreferenceCategory app:title="Stash" app:iconSpaceReserved="false">
         <SwitchPreferenceCompat app:key="clipboard_history" app:title="Keep copied text"
             app:summary="Your last 30 copies. Passwords are never kept." app:defaultValue="true" app:iconSpaceReserved="false" />

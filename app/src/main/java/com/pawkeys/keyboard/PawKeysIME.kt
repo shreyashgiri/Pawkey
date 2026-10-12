@@ -31,6 +31,10 @@ import com.pawkeys.keyboard.engine.GlideDecoder
 import com.pawkeys.keyboard.engine.Offensive
 import com.pawkeys.keyboard.engine.Suggestion
 import com.pawkeys.keyboard.engine.UserDictionary
+import com.pawkeys.keyboard.gifs.Gif
+import com.pawkeys.keyboard.gifs.GifPanel
+import com.pawkeys.keyboard.gifs.GifSource
+import com.pawkeys.keyboard.gifs.GiphySource
 import com.pawkeys.keyboard.panels.BreedPanel
 import com.pawkeys.keyboard.translate.LanguagePanel
 import com.pawkeys.keyboard.translate.Languages
@@ -81,7 +85,7 @@ class PawKeysIME : InputMethodService(),
     private lateinit var stripFrame: FrameLayout
     private lateinit var keyboardView: KeyboardView
     private lateinit var keyboardFrame: FrameLayout
-    private enum class Panel { MENU, EMOJI, STICKERS, CLIPBOARD, TEXT_EDIT, THEMES, BREEDS, LANGUAGE }
+    private enum class Panel { MENU, EMOJI, STICKERS, GIFS, CLIPBOARD, TEXT_EDIT, THEMES, BREEDS, LANGUAGE }
     private var panel: Panel? = null
     private var panelView: View? = null
     private var needsRebuild = false
@@ -588,7 +592,7 @@ class PawKeysIME : InputMethodService(),
 
     private fun handleEnter() {
         if (translating) { onInsertTranslation(); return }
-        if (searchingEmoji) { closeEmojiSearch(); return }
+        if (searchingEmoji) { closeEmojiSearch(); return }  // GIFs: shows results
         val ic = currentInputConnection ?: return
         if (composing.isNotEmpty()) commitComposing("", allowCorrect = false)
         lastAutoSpace = false
@@ -947,6 +951,7 @@ class PawKeysIME : InputMethodService(),
             CandidateStrip.ToolbarAction.MENU -> togglePanel(Panel.MENU)
             CandidateStrip.ToolbarAction.EMOJI -> togglePanel(Panel.EMOJI)
             CandidateStrip.ToolbarAction.STICKERS -> togglePanel(Panel.STICKERS)
+            CandidateStrip.ToolbarAction.GIFS -> { gifQuery = null; togglePanel(Panel.GIFS) }
             CandidateStrip.ToolbarAction.TRANSLATE -> if (translating) onCloseTranslate() else startTranslate()
             CandidateStrip.ToolbarAction.VOICE -> if (listening) stopVoice() else startVoice()
             CandidateStrip.ToolbarAction.CLIPBOARD -> togglePanel(Panel.CLIPBOARD)
@@ -996,6 +1001,8 @@ class PawKeysIME : InputMethodService(),
             Panel.THEMES -> ThemePanel(this, theme, prefs.theme, prefs.breed) { prefs.theme = it }
             Panel.BREEDS -> BreedPanel(this, theme, prefs.breed) { prefs.breed = it }
             Panel.STICKERS -> StickerPanel(this, theme, ::sendSticker, ::closePanel)
+            Panel.GIFS -> GifPanel(this, theme, gifSource(), gifQuery, ::sendGif, ::startGifSearch,
+                { openActivity(SettingsActivity::class.java) }, ::closePanel)
             Panel.LANGUAGE -> LanguagePanel(this, theme,
                 if (pickingSource) "Translate from" else "Translate into",
                 if (pickingSource) prefs.translateFrom else prefs.translateTo) { code -> pickLanguage(code) }
@@ -1011,6 +1018,7 @@ class PawKeysIME : InputMethodService(),
             Panel.BREEDS -> CandidateStrip.ToolbarAction.BREEDS
             Panel.EMOJI -> CandidateStrip.ToolbarAction.EMOJI
             Panel.STICKERS -> CandidateStrip.ToolbarAction.STICKERS
+            Panel.GIFS -> CandidateStrip.ToolbarAction.GIFS
             Panel.LANGUAGE -> CandidateStrip.ToolbarAction.TRANSLATE
             Panel.CLIPBOARD -> CandidateStrip.ToolbarAction.CLIPBOARD
             Panel.TEXT_EDIT -> CandidateStrip.ToolbarAction.TEXT_EDIT
@@ -1107,6 +1115,8 @@ class PawKeysIME : InputMethodService(),
 
     private var emojiSearchBar: EmojiSearchBar? = null
     private val emojiQuery = StringBuilder()
+    /** The search bar is shared: emoji (live results) or GIFs (Enter shows results in the panel). */
+    private var searchingGifs = false
     internal val searchingEmoji get() = emojiSearchBar != null
     private val allEmoji by lazy { EmojiData.categories.flatMap { it.emojis }.distinct() }
 
@@ -1117,6 +1127,7 @@ class PawKeysIME : InputMethodService(),
         restoreStrip()
         val bar = EmojiSearchBar(this, theme, { e -> insertEmoji(e) }, ::closeEmojiSearch)
         emojiSearchBar = bar
+        searchingGifs = false
         stripFrame.removeAllViews()
         stripFrame.addView(bar, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT))
         shift = ShiftState.OFF
@@ -1125,13 +1136,69 @@ class PawKeysIME : InputMethodService(),
 
     private fun refreshEmojiSearch() {
         val q = emojiQuery.toString()
+        if (searchingGifs) { emojiSearchBar?.show(q, emptyList()); return }
         emojiSearchBar?.show(q, if (q.isBlank()) emptyList() else EmojiSearch.search(q, allEmoji))
     }
 
-    /** Back to the emoji panel. */
+    /** Back to the emoji panel, or for GIFs: show the results for what was typed. */
     internal fun closeEmojiSearch() {
+        val gifs = searchingGifs
+        val q = emojiQuery.toString().trim()
         restoreStrip()
-        openPanel(Panel.EMOJI)
+        if (gifs) {
+            gifQuery = q.ifEmpty { null }
+            openPanel(Panel.GIFS)
+        } else {
+            openPanel(Panel.EMOJI)
+        }
+    }
+
+    // ---------------------------------------------------------------- GIFs
+
+    private var gifQuery: String? = null
+    private var gifSourceKey = ""
+    private var cachedGifSource: GifSource? = null
+    /** Replaceable in tests. */
+    internal var gifSourceFactory: (String) -> GifSource = { GiphySource(it) }
+
+    private fun gifSource(): GifSource? {
+        val key = prefs.giphyKey
+        if (key.isEmpty()) return null
+        if (key != gifSourceKey || cachedGifSource == null) {
+            cachedGifSource = gifSourceFactory(key)
+            gifSourceKey = key
+        }
+        return cachedGifSource
+    }
+
+    internal fun startGifSearch() {
+        if (root == null) return
+        closePanel()
+        restoreStrip()
+        val bar = EmojiSearchBar(this, theme, { }, ::closeEmojiSearch, hint = "Search GIPHY, then press enter", showResults = false)
+        emojiSearchBar = bar
+        searchingGifs = true
+        stripFrame.removeAllViews()
+        stripFrame.addView(bar, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT))
+        shift = ShiftState.OFF
+        keyboardView.shiftState = shift
+    }
+
+    internal fun sendGif(gif: Gif) {
+        val source = gifSource() ?: return
+        feedback.tick()
+        source.fetch(gif.full) { bytes ->
+            if (bytes == null) {
+                Toast.makeText(this, "Couldn't download that GIF", Toast.LENGTH_SHORT).show()
+                return@fetch
+            }
+            val file = File(RichContent.shareDir(this), "gif_${gif.id.ifEmpty { "pawkeys" }}.gif")
+            runCatching { file.writeBytes(bytes) }.onFailure { return@fetch }
+            val result = RichContent.send(this, currentInputConnection, currentInputEditorInfo, file, "image/gif", gif.title.ifEmpty { "GIF" })
+            if (result == RichContent.Result.COPIED) {
+                Toast.makeText(this, "This app doesn't take GIFs directly. Copied, so you can paste it.", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     // ---------------------------------------------------------------- voice

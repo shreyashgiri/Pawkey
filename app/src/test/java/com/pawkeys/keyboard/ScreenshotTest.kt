@@ -253,6 +253,30 @@ class ScreenshotTest {
         render(startIme("calico") { it.heightPercent = 85; it.numberRow = false }.second, "29_size_small")
     }
 
+    @Test fun gifs() {
+        val (ime, view) = startIme()
+        ime.onToolbarAction(CandidateStrip.ToolbarAction.GIFS)
+        render(view, "67_gifs_no_key")
+        ime.onToolbarAction(CandidateStrip.ToolbarAction.GIFS)
+        ime.gifSourceFactory = {
+            object : com.pawkeys.keyboard.gifs.GifSource {
+                val colors = listOf(0xFFF0A257, 0xFFA8AEB8, 0xFFF6A7B5, 0xFF8FC9A9, 0xFF9DB7F0, 0xFFE8C46A).map { it.toInt() }
+                override fun list(query: String?, done: (List<com.pawkeys.keyboard.gifs.Gif>?, String?) -> Unit) =
+                    done(colors.indices.map { com.pawkeys.keyboard.gifs.Gif("$it", "gif $it", "$it", "$it", 100, 100) }, null)
+                override fun fetch(url: String, done: (ByteArray?) -> Unit) {
+                    val b = Bitmap.createBitmap(120, 90, Bitmap.Config.ARGB_8888)
+                    Canvas(b).drawColor(colors[url.toInt()])
+                    val out = java.io.ByteArrayOutputStream()
+                    b.compress(Bitmap.CompressFormat.PNG, 100, out)
+                    done(out.toByteArray())
+                }
+            }
+        }
+        android.preference.PreferenceManager.getDefaultSharedPreferences(ime).edit().putString(Prefs.GIPHY_KEY, "k").commit()
+        ime.onToolbarAction(CandidateStrip.ToolbarAction.GIFS)
+        render(view, "68_gifs")
+    }
+
     @Test fun perch() {
         val (_, view) = startIme { it.floating = true; it.floatX = 0.5f; it.floatY = 0.55f }
         val perch = view as com.pawkeys.keyboard.panels.PerchContainer

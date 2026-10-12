@@ -54,6 +54,9 @@ class Prefs(context: Context) {
     var sound: Boolean
         get() = sp.getBoolean(SOUND, false)
         set(v) = sp.edit().putBoolean(SOUND, v).apply()
+    /** The user's own GIPHY API key; GIFs are off without one. */
+    val giphyKey get() = sp.getString(GIPHY_KEY, "")!!.trim()
+
     var translateFrom: String
         get() = sp.getString(TRANSLATE_FROM, "en")!!
         set(v) = sp.edit().putString(TRANSLATE_FROM, v).apply()
@@ -105,6 +108,7 @@ class Prefs(context: Context) {
         const val ONE_HANDED = "one_handed"
         const val SOUND = "sound"
         const val TRANSLATE_FROM = "translate_from"
+        const val GIPHY_KEY = "giphy_key"
         const val TRANSLATE_TO = "translate_to"
         const val SOUND_STYLE = "sound_style"
         const val SOUND_VOLUME = "sound_volume"

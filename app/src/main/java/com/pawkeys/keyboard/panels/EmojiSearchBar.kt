@@ -23,6 +23,9 @@ class EmojiSearchBar(
     private val theme: KeyboardTheme,
     private val onPick: (String) -> Unit,
     onClose: () -> Unit,
+    /** Placeholder text; GIF search reuses this bar without the emoji row. */
+    private val hint: String = "Search emoji",
+    private val showResults: Boolean = true,
 ) : LinearLayout(context) {
     private val query = TextView(context)
     private val results = LinearLayout(context).apply { orientation = HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
@@ -54,10 +57,14 @@ class EmojiSearchBar(
             LayoutParams(UiKit.dp(context, 36f), UiKit.dp(context, 36f)))
         addView(field, LayoutParams(LayoutParams.MATCH_PARENT, UiKit.dp(context, 40f)))
 
-        addView(HorizontalScrollView(context).apply {
-            isHorizontalScrollBarEnabled = false
-            addView(results)
-        }, LayoutParams(LayoutParams.MATCH_PARENT, UiKit.dp(context, 48f)))
+        if (showResults) {
+            addView(HorizontalScrollView(context).apply {
+                isHorizontalScrollBarEnabled = false
+                addView(results)
+            }, LayoutParams(LayoutParams.MATCH_PARENT, UiKit.dp(context, 48f)))
+        } else {
+            setPadding(paddingLeft, paddingTop, paddingRight, UiKit.dp(context, 4f))
+        }
         show("", emptyList())
     }
 
@@ -66,7 +73,7 @@ class EmojiSearchBar(
     fun show(text: String, found: List<String>) {
         // Only emoji this phone's font can draw (older Androids lack newer ones).
         val matches = found.filter { glyphs.hasGlyph(it) }
-        query.text = text.ifEmpty { "Search emoji" }
+        query.text = text.ifEmpty { hint }
         query.setTextColor(if (text.isEmpty()) theme.hintText else theme.keyText)
         results.removeAllViews()
         if (text.isNotEmpty() && matches.isEmpty()) {
