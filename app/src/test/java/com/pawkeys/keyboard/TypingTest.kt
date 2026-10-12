@@ -221,4 +221,25 @@ class TypingTest {
         type(" ok")
         assertEquals("[hi] Good morning ok", text)
     }
+
+    private fun speech(text: String) = android.os.Bundle().apply {
+        putStringArrayList(android.speech.SpeechRecognizer.RESULTS_RECOGNITION, arrayListOf(text))
+    }
+
+    @Test fun voiceTypingShowsWordsLiveAndCommitsThem() {
+        org.robolectric.Shadows.shadowOf(ime.application).grantPermissions(android.Manifest.permission.RECORD_AUDIO)
+        ime.recognitionAvailable = { true }
+        ime.onCreateInputView()
+        ime.onStartInputView(EditorInfo().apply { inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES }, false)
+        type("hi.")
+        ime.onToolbarAction(CandidateStrip.ToolbarAction.VOICE)
+        assert(ime.listening)
+        ShadowLooper.idleMainLooper()
+        val rec = org.robolectric.Shadows.shadowOf(org.robolectric.shadows.ShadowSpeechRecognizer.getLatestSpeechRecognizer())
+        rec.triggerOnPartialResults(speech("see you"))
+        assertEquals("Hi. See you", text)
+        rec.triggerOnResults(speech("see you soon"))
+        assertEquals("Hi. See you soon", text)
+        assert(!ime.listening)
+    }
 }

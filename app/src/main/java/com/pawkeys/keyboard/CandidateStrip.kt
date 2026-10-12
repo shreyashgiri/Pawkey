@@ -39,6 +39,7 @@ class CandidateStrip(context: Context, private val listener: Listener) : View(co
         EMOJI(R.drawable.ic_mood, "Emoji"),
         STICKERS(R.drawable.ic_sticky_note_2, "Stickers"),
         TRANSLATE(R.drawable.ic_translate, "Translate"),
+        VOICE(R.drawable.ic_mic, "Voice"),
         CLIPBOARD(R.drawable.ic_content_paste, "Stash"),
         TEXT_EDIT(R.drawable.ic_edit_note, "Groom"),
         ONE_HANDED(R.drawable.ic_front_hand, "Single paw"),
@@ -240,7 +241,7 @@ class CandidateStrip(context: Context, private val listener: Listener) : View(co
     override fun performClick(): Boolean = super.performClick()
 
     companion object {
-        val DEFAULT_BUTTONS = listOf(ToolbarAction.EMOJI, ToolbarAction.CLIPBOARD, ToolbarAction.TEXT_EDIT, ToolbarAction.ONE_HANDED)
+        val DEFAULT_BUTTONS = listOf(ToolbarAction.EMOJI, ToolbarAction.CLIPBOARD, ToolbarAction.TEXT_EDIT, ToolbarAction.TRANSLATE, ToolbarAction.VOICE)
         const val MAX_BUTTONS = 5
     }
 }

@@ -1,14 +1,20 @@
 package com.pawkeys.keyboard
 
+import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import android.graphics.Bitmap
 import android.icu.text.BreakIterator
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.inputmethodservice.InputMethodService
+import android.os.Bundle
 import android.os.SystemClock
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import android.text.InputType
 import android.view.KeyEvent
 import android.view.View
@@ -30,6 +36,8 @@ import com.pawkeys.keyboard.translate.Languages
 import com.pawkeys.keyboard.translate.MlKitTranslator
 import com.pawkeys.keyboard.translate.TextTranslator
 import com.pawkeys.keyboard.translate.TranslateBar
+import com.pawkeys.keyboard.voice.MicPermissionActivity
+import com.pawkeys.keyboard.voice.VoiceBar
 import com.pawkeys.keyboard.stickers.Sticker
 import com.pawkeys.keyboard.stickers.StickerArt
 import com.pawkeys.keyboard.stickers.StickerPanel
@@ -127,6 +135,7 @@ class PawKeysIME : InputMethodService(),
         clipboard.release()
         feedback.release()
         translator.close()
+        recognizer?.destroy()
         userDict.save()
         super.onDestroy()
     }
@@ -342,6 +351,7 @@ class PawKeysIME : InputMethodService(),
     override fun onKeyDown(key: Key) = feedback.onKey(key.code)
 
     override fun onKey(key: Key) {
+        if (listening) stopVoice()
         val wasSpace = lastKeyWasSpace
         if (key.code != Codes.SPACE && key.code != Codes.SHIFT) lastKeyWasSpace = false
         when (key.code) {
@@ -886,6 +896,7 @@ class PawKeysIME : InputMethodService(),
             CandidateStrip.ToolbarAction.EMOJI -> togglePanel(Panel.EMOJI)
             CandidateStrip.ToolbarAction.STICKERS -> togglePanel(Panel.STICKERS)
             CandidateStrip.ToolbarAction.TRANSLATE -> if (translating) onCloseTranslate() else startTranslate()
+            CandidateStrip.ToolbarAction.VOICE -> if (listening) stopVoice() else startVoice()
             CandidateStrip.ToolbarAction.CLIPBOARD -> togglePanel(Panel.CLIPBOARD)
             CandidateStrip.ToolbarAction.TEXT_EDIT -> togglePanel(Panel.TEXT_EDIT)
             CandidateStrip.ToolbarAction.THEMES -> togglePanel(Panel.THEMES)
@@ -988,6 +999,9 @@ class PawKeysIME : InputMethodService(),
     }
 
     private fun restoreStrip() {
+        voiceBar = null
+        recognizer?.destroy()
+        recognizer = null
         translateBar = null
         translateBuffer.clear()
         translated = ""
@@ -1032,6 +1046,99 @@ class PawKeysIME : InputMethodService(),
         if (composing.isNotEmpty()) commitComposing("", allowCorrect = false)
         ic.commitText(text, 1)
         closePanel()
+    }
+
+    // ---------------------------------------------------------------- voice
+
+    private var recognizer: SpeechRecognizer? = null
+    private var voiceBar: VoiceBar? = null
+    private var voiceNeedsSpace = false
+    private var voiceCaps = false
+    internal val listening get() = voiceBar != null
+    /** Overridable in tests (Robolectric has no speech service). */
+    internal var recognitionAvailable: () -> Boolean = { SpeechRecognizer.isRecognitionAvailable(this) }
+
+    internal fun startVoice() {
+        if (root == null) return
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            openActivity(MicPermissionActivity::class.java)
+            return
+        }
+        if (!recognitionAvailable()) {
+            Toast.makeText(this, "This phone has no speech recognition service", Toast.LENGTH_LONG).show()
+            return
+        }
+        if (composing.isNotEmpty()) commitComposing("", allowCorrect = false)
+        closePanel()
+        restoreStrip()
+        val before = textBefore(1)
+        voiceNeedsSpace = before.isNotEmpty() && !before[0].isWhitespace()
+        val info = currentInputEditorInfo
+        // Voice adds its own space, so "Hi.|" counts as a sentence start even before the space.
+        val lastChar = textBefore(8).trimEnd().lastOrNull()
+        voiceCaps = autoCapOn && (lastChar == null || lastChar in ".!?\n" ||
+            (info != null && (currentInputConnection?.getCursorCapsMode(info.inputType) ?: 0) != 0))
+        val bar = VoiceBar(this, theme) { stopVoice() }
+        voiceBar = bar
+        stripFrame.removeAllViews()
+        stripFrame.addView(bar, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, UiDims.stripHeight(this)))
+
+        val r = SpeechRecognizer.createSpeechRecognizer(this)
+        recognizer = r
+        r.setRecognitionListener(object : RecognitionListener {
+            override fun onReadyForSpeech(params: Bundle?) = Unit
+            override fun onBeginningOfSpeech() = Unit
+            override fun onRmsChanged(rmsdB: Float) { voiceBar?.level(rmsdB) }
+            override fun onBufferReceived(buffer: ByteArray?) = Unit
+            override fun onEndOfSpeech() { voiceBar?.show("Working…", hint = true) }
+            override fun onEvent(eventType: Int, params: Bundle?) = Unit
+
+            override fun onPartialResults(partial: Bundle?) {
+                val words = partial?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
+                if (words.isBlank()) return
+                voiceBar?.show(words)
+                // Show the words in the app as you speak.
+                currentInputConnection?.setComposingText(formatVoice(words), 1)
+            }
+
+            override fun onResults(results: Bundle?) {
+                val words = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
+                val ic = currentInputConnection
+                if (words.isNotBlank()) ic?.commitText(formatVoice(words), 1) else ic?.finishComposingText()
+                stopVoice()
+            }
+
+            override fun onError(error: Int) {
+                currentInputConnection?.finishComposingText()
+                val msg = when (error) {
+                    SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Didn't catch that"
+                    SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Voice typing needs a connection here"
+                    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Microphone permission is off"
+                    else -> "Voice typing stopped"
+                }
+                Toast.makeText(this@PawKeysIME, msg, Toast.LENGTH_SHORT).show()
+                stopVoice()
+            }
+        })
+        r.startListening(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, packageName)
+        })
+    }
+
+    private fun formatVoice(words: String): String {
+        var t = words.trim()
+        if (voiceCaps) t = t.replaceFirstChar { it.uppercaseChar() }
+        return if (voiceNeedsSpace) " $t" else t
+    }
+
+    internal fun stopVoice() {
+        recognizer?.stopListening()
+        currentInputConnection?.finishComposingText()
+        restoreStrip()
+        updateShift()
+        updateSuggestions()
     }
 
     // ---------------------------------------------------------------- translate

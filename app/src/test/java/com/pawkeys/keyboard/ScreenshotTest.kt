@@ -253,6 +253,20 @@ class ScreenshotTest {
         render(startIme("calico") { it.heightPercent = 85; it.numberRow = false }.second, "29_size_small")
     }
 
+    @Test fun voice() {
+        val (ime, view) = startIme()
+        org.robolectric.Shadows.shadowOf(ime.application).grantPermissions(android.Manifest.permission.RECORD_AUDIO)
+        ime.recognitionAvailable = { true }
+        ime.onToolbarAction(CandidateStrip.ToolbarAction.VOICE)
+        ShadowLooper.idleMainLooper()
+        val rec = org.robolectric.Shadows.shadowOf(org.robolectric.shadows.ShadowSpeechRecognizer.getLatestSpeechRecognizer())
+        rec.triggerOnRmsChanged(7f)
+        rec.triggerOnPartialResults(android.os.Bundle().apply {
+            putStringArrayList(android.speech.SpeechRecognizer.RESULTS_RECOGNITION, arrayListOf("feed the cat at six"))
+        })
+        render(view, "64_voice")
+    }
+
     @Test fun translate() {
         val (ime, view) = startIme()
         ime.translator = object : com.pawkeys.keyboard.translate.TextTranslator {
