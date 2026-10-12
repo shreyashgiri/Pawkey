@@ -52,6 +52,7 @@ PawKeys uses its own names for its features. Universal things (Emoji, Stickers, 
 21. [Key sounds](#21-key-sounds)
 22. [Settings app](#22-settings-app)
 23. [Feature list](#23-feature-list)
+24. [iPhone version](#24-iphone-version)
 
 ---
 
@@ -182,7 +183,11 @@ Icons are 21dp. The open panel's tool sits on a soft accent-coloured pill.
 
 ## 10. Gestures: Flicks, Prowl, Scoot, Scratch
 
-Choose under **Settings → Gestures → Swipe on letters**: Flicks, Prowl or off. Cycle it from the Den with the Gestures tool.
+Choose under **Settings → Gestures → Swipe on letters**: **Flicks + Prowl** (default), Flicks only, Prowl only, or off. Cycle it from the Den with the Gestures tool.
+
+**Flicks + Prowl** tells the two apart by how you swipe:
+- **Flick:** quick (under 0.26 s), short (under about 2.4 keys) and straight.
+- **Prowl:** anything slower, longer or turning. The cat trail appears as soon as the swipe is clearly a word.
 
 **Flicks** (default):
 
@@ -401,6 +406,7 @@ Pick in **Settings → Feel → Sound** (with a volume slider), or tap **Sound**
 ### Gestures
 | | Feature | From |
 |---|---|---|
+| ✅ | Flicks + Prowl together (default): quick short swipes are Flicks, longer or turning ones are Prowl | 🐾 |
 | ✅ | Flicks: space, full stop, delete word, cycle hunches and punctuation | F |
 | ✅ | Prowl: swipe typing with a curved trail and a running cat | S + 🐾 |
 | ✅ | Scoot, Scratch, hold-to-repeat backspace, long-press space to switch keyboards | S |
@@ -424,3 +430,39 @@ Pick in **Settings → Feel → Sound** (with a volume slider), or tap **Sound**
 | Other languages for typing | Needs a word list and layout per language |
 | Handwriting | Large separate feature |
 | Bitmoji / AR emoji | Needs Snap's SDK or Samsung's own services |
+
+---
+
+## 24. iPhone version
+
+The iPhone version in `ios/` uses the same design, names, word list and logic, with iPhone-native icons. Its images are rendered on GitHub's iPhone simulator. To install it, see [ios/INSTALL.md](../ios/INSTALL.md).
+
+| PawKeys breed | iPhone breed (dark) |
+|---|---|
+| ![](ui/ios_breed_pawkeys.png) | ![](ui/ios_breed_iphone_dark.png) |
+
+| Google breed | Hunches with Auto-fix |
+|---|---|
+| ![](ui/ios_breed_google.png) | ![](ui/ios_hunches.png) |
+
+| Den | Emoji |
+|---|---|
+| ![](ui/ios_den.png) | ![](ui/ios_emoji.png) |
+
+| Groom | Stickers |
+|---|---|
+| ![](ui/ios_groom.png) | ![](ui/ios_stickers.png) |
+
+![Translate bar](ui/ios_translate_bar.png)
+
+**Differences from Android.** Apple sets these limits for keyboards:
+
+| | iPhone |
+|---|---|
+| Stickers, GIFs | Copied for you to paste |
+| Groom | No select mode; keyboards can't select text |
+| Scratch | Shows "Erase N words", then deletes on release |
+| Translate | Apple's on-device translation, iOS 18+ |
+| Voice, Perch | Not available on iPhone |
+| Settings | Inside the keyboard (paw → Settings) |
+| Sounds, haptics, Stash, paste, GIFs | Need Allow Full Access |
