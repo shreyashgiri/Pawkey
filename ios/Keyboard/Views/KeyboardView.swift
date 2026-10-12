@@ -32,7 +32,7 @@ final class KeyboardView: UIView {
     var showHints = false
     var keyOutlines = false
     var heightScale: CGFloat = 1
-    var gestures = "flicks"
+    var gestures = "both"
     var scoot = true
     var scratch = true
     var keyPopup = true
@@ -46,7 +46,11 @@ final class KeyboardView: UIView {
     var keysHeight: CGFloat { breed.padTop + breed.padBottom + CGFloat(layout?.rows.count ?? 4) * rowHeight }
 
     // Gesture state.
-    private enum Mode { case none, tap, popup, spaceCursor, deleteSwipe, deleteRepeat, glide, flick, consumed }
+    /// .swipe = "Flicks + Prowl" mode, before we know which one the finger is doing.
+    private enum Mode { case none, tap, popup, spaceCursor, deleteSwipe, deleteRepeat, glide, flick, swipe, consumed }
+    private var downTime: CFTimeInterval = 0
+    static let flickMaxTime: CFTimeInterval = 0.26
+    static let flickMaxKeys: CGFloat = 2.4
     private var mode = Mode.none
     private var activeTouch: UITouch?
     private var downKey: Key?
@@ -296,6 +300,7 @@ final class KeyboardView: UIView {
         repeatTimer?.invalidate()
         activeTouch = t
         downPoint = t.location(in: self)
+        downTime = CACurrentMediaTime()
         lastCursorX = downPoint.x
         deleteWords = 0
         repeatCount = 0
@@ -352,6 +357,13 @@ final class KeyboardView: UIView {
                 prowl.start(trace[0])
                 trace.dropFirst().forEach { prowl.add($0) }
                 addTrace(p)
+            } else if k.type == .char && gestures == "both" && k.isLetter && dist > unitWidth * 0.6 {
+                // Flick or Prowl? Decided by speed, length and straightness.
+                longPressWork?.cancel()
+                mode = .swipe
+                pressedKey = nil
+                previewKey = nil
+                addTrace(p)
             } else if k.type == .char && gestures == "flicks" && dist > unitWidth * 0.7 {
                 longPressWork?.cancel()
                 mode = .flick
@@ -384,6 +396,15 @@ final class KeyboardView: UIView {
             }
         case .glide:
             addTrace(p)
+        case .swipe:
+            addTrace(p)
+            if looksLikeProwl() {
+                // Clearly drawing a word: switch to Prowl and show the trail.
+                mode = .glide
+                prowl.start(trace[0])
+                trace.dropFirst().forEach { prowl.add($0) }
+                setNeedsDisplay()
+            }
         case .popup:
             let idx = popupCells.firstIndex { p.x >= $0.minX && p.x < $0.maxX && p.y >= $0.minY - rowHeight && p.y < $0.maxY + rowHeight }
             let sel = idx ?? popupCells.indices.min { abs(popupCells[$0].midX - p.x) + abs(popupCells[$0].midY - p.y) < abs(popupCells[$1].midX - p.x) + abs(popupCells[$1].midY - p.y) } ?? 0
@@ -417,6 +438,14 @@ final class KeyboardView: UIView {
             addTrace(p)
             prowl.release()
             delegate?.glided(trace)
+        case .swipe:
+            addTrace(p)
+            if isFlick() {
+                let dx = p.x - downPoint.x, dy = p.y - downPoint.y
+                delegate?.flicked(abs(dx) >= abs(dy) ? (dx > 0 ? .right : .left) : (dy > 0 ? .down : .up))
+            } else {
+                delegate?.glided(trace)
+            }
         case .flick:
             let dx = p.x - downPoint.x, dy = p.y - downPoint.y
             if hypot(dx, dy) > unitWidth * 0.7 {
@@ -428,6 +457,30 @@ final class KeyboardView: UIView {
             break
         }
         resetGesture()
+    }
+
+    private func swipeLength() -> CGFloat {
+        var l: CGFloat = 0
+        for i in 1..<max(1, trace.count) { l += hypot(trace[i].x - trace[i - 1].x, trace[i].y - trace[i - 1].y) }
+        return l
+    }
+
+    /// 1 = a straight line, lower = curved or turning.
+    private func straightness() -> CGFloat {
+        let l = swipeLength()
+        guard l > 0, let a = trace.first, let b = trace.last else { return 1 }
+        return hypot(b.x - a.x, b.y - a.y) / l
+    }
+
+    /// A flick is quick, short and straight.
+    private func isFlick() -> Bool {
+        CACurrentMediaTime() - downTime < Self.flickMaxTime && swipeLength() < unitWidth * Self.flickMaxKeys && straightness() > 0.85
+    }
+
+    /// Anything slow, long or turning is a word being drawn.
+    private func looksLikeProwl() -> Bool {
+        let l = swipeLength()
+        return CACurrentMediaTime() - downTime > Self.flickMaxTime || l > unitWidth * Self.flickMaxKeys || (l > unitWidth * 1.2 && straightness() < 0.85)
     }
 
     private func finishTap() {

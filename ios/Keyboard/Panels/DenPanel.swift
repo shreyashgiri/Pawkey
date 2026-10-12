@@ -107,7 +107,7 @@ final class DenPanel: UIView {
             }()
             let label: String = {
                 switch t {
-                case .gestures: return ["prowl": "Prowl", "off": "No gestures"][prefs.gestures] ?? "Flicks"
+                case .gestures: return ["both": "Flicks+Prowl", "prowl": "Prowl", "off": "No gestures"][prefs.gestures] ?? "Flicks"
                 case .sound: return Feedback.label(prefs.sound)
                 default: return t.label
                 }

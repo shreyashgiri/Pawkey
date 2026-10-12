@@ -20,10 +20,10 @@ extension KeyboardViewController {
             applyLook()
             if fromDen { openPanel(.den) }
         case .gestures:
-            prefs.gestures = ["flicks": "prowl", "prowl": "off"][prefs.gestures] ?? "flicks"
+            prefs.gestures = ["both": "flicks", "flicks": "prowl", "prowl": "off"][prefs.gestures] ?? "both"
             keyboardView.gestures = prefs.gestures
             if fromDen { openPanel(.den) }
-            toast(["prowl": "Prowl on: swipe to type", "off": "Gestures off"][prefs.gestures] ?? "Flicks on")
+            toast(["both": "Flicks + Prowl", "prowl": "Prowl only: swipe to type", "off": "Gestures off"][prefs.gestures] ?? "Flicks only")
         case .haptics:
             prefs.haptics.toggle()
             if fromDen { openPanel(.den) }
@@ -250,9 +250,9 @@ extension KeyboardViewController {
             .choice("Tricks", "\(prefs.tricks.count)", { [weak self] in self?.openPanel(.tricks) }),
             .choice("Clear memory", "Clear", { [weak self] in self?.memory.clear(); self?.toast("Memory cleared") }),
             .section("Gestures"),
-            .choice("Swipe on letters", ["prowl": "Prowl", "off": "Off"][prefs.gestures] ?? "Flicks", { [weak self] in
+            .choice("Swipe on letters", ["both": "Flicks + Prowl", "prowl": "Prowl", "off": "Off"][prefs.gestures] ?? "Flicks", { [weak self] in
                 guard let self = self else { return }
-                self.prefs.gestures = ["flicks": "prowl", "prowl": "off"][self.prefs.gestures] ?? "flicks"
+                self.prefs.gestures = ["both": "flicks", "flicks": "prowl", "prowl": "off"][self.prefs.gestures] ?? "both"
                 reopen()
             }),
             .toggle("Scoot (spacebar cursor)", prefs.scoot, { [weak self] v in self?.prefs.scoot = v; self?.applyLook() }),

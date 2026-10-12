@@ -28,8 +28,8 @@ final class Prefs {
     var doubleSpace: Bool { get { bool("doubleSpace", true) } set { d.set(newValue, forKey: "doubleSpace") } }
     var smartSpacing: Bool { get { bool("smartSpacing", true) } set { d.set(newValue, forKey: "smartSpacing") } }
 
-    /// "flicks", "prowl" or "off".
-    var gestures: String { get { str("gestures", "flicks") } set { d.set(newValue, forKey: "gestures") } }
+    /// "both" (Flicks + Prowl), "flicks", "prowl" or "off".
+    var gestures: String { get { str("gestures", "both") } set { d.set(newValue, forKey: "gestures") } }
     var scoot: Bool { get { bool("scoot", true) } set { d.set(newValue, forKey: "scoot") } }
     var scratch: Bool { get { bool("scratch", true) } set { d.set(newValue, forKey: "scratch") } }
     var runningCat: Bool { get { bool("runningCat", true) } set { d.set(newValue, forKey: "runningCat") } }
