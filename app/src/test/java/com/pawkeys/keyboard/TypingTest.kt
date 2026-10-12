@@ -146,4 +146,32 @@ class TypingTest {
         val p = kv.letterCenters().getValue('p')
         assert(p.first > q.first) { "keys not laid out: q=$q p=$p" }
     }
+
+    @Test fun groomSelectCopyPaste() {
+        type("hello world")
+        ime.home(select = false)
+        ime.selectionMode(true)
+        repeat(5) { ime.moveCursor(1, 0, select = true) }
+        assertEquals("Hello", field.text.substring(field.selectionStart, field.selectionEnd))
+        ime.copy()
+        ime.end(select = false)
+        ime.paste()
+        assertEquals("Hello worldHello", text)
+        ime.selectAll()
+        assertEquals(0, field.selectionStart)
+        assertEquals(text.length, field.selectionEnd)
+        ime.cut()
+        assertEquals("", text)
+        ime.paste()
+        assertEquals("Hello worldHello", text)
+    }
+
+    @Test fun groomMovesCursorOverEmojiWhole() {
+        type("a")
+        ime.insertEmoji("😺")
+        ime.moveCursor(-1, 0, select = false)
+        assertEquals(1, field.selectionStart)
+        ime.moveCursor(-1, 0, select = false)
+        assertEquals(0, field.selectionStart)
+    }
 }

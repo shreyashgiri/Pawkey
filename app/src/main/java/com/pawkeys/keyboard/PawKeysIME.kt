@@ -1,5 +1,7 @@
 package com.pawkeys.keyboard
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.icu.text.BreakIterator
 import android.content.SharedPreferences
@@ -85,7 +87,8 @@ class PawKeysIME : InputMethodService(),
     private var lastAutoSpace = false
     private var lastKeyWasSpace = false
     private var punctIndex = -1
-    private var selEnd = 0
+    private var selStart = -1
+    private var selEnd = -1
     private var deleteAnchor = -1
     private var deleteBefore = ""
 
@@ -294,6 +297,7 @@ class PawKeysIME : InputMethodService(),
 
     override fun onUpdateSelection(oldSelStart: Int, oldSelEnd: Int, newSelStart: Int, newSelEnd: Int, candidatesStart: Int, candidatesEnd: Int) {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
+        selStart = newSelStart
         selEnd = newSelEnd
         if (composing.isNotEmpty() && (newSelStart != candidatesEnd || newSelEnd != candidatesEnd)) {
             // The cursor moved away from the word being typed (user tapped elsewhere).
@@ -654,9 +658,7 @@ class PawKeysIME : InputMethodService(),
         lastCorrection = null
         lastCommit = null
         lastAutoSpace = false
-        val code = if (steps > 0) KeyEvent.KEYCODE_DPAD_RIGHT else KeyEvent.KEYCODE_DPAD_LEFT
-        repeat(abs(steps)) { sendDownUpKeyEvents(code) }
-        feedback.tick()
+        repeat(abs(steps)) { moveCursor(if (steps > 0) 1 else -1, 0, select = false) }
     }
 
     override fun onSpaceLongPress() {
@@ -939,7 +941,7 @@ class PawKeysIME : InputMethodService(),
         startActivity(Intent(this, cls).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
-    private fun insertEmoji(emoji: String) {
+    internal fun insertEmoji(emoji: String) {
         val ic = currentInputConnection ?: return
         if (composing.isNotEmpty()) commitComposing("", allowCorrect = false)
         ic.commitText(emoji, 1)
@@ -971,24 +973,157 @@ class PawKeysIME : InputMethodService(),
         feedback.tick()
     }
 
-    private fun shiftMeta(select: Boolean) = if (select) KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON else 0
+    // Selection and clipboard work through InputConnection.setSelection and the
+    // system clipboard directly. Shift+arrow key events and context-menu actions
+    // are ignored by many apps (and by Samsung's text fields), which broke Groom.
 
-    override fun moveCursor(dx: Int, dy: Int, select: Boolean) {
-        val code = when {
-            dx < 0 -> KeyEvent.KEYCODE_DPAD_LEFT
-            dx > 0 -> KeyEvent.KEYCODE_DPAD_RIGHT
-            dy < 0 -> KeyEvent.KEYCODE_DPAD_UP
-            else -> KeyEvent.KEYCODE_DPAD_DOWN
+    /** Fixed end of the selection while select mode is on; the other end moves. */
+    private var selectAnchor = -1
+    private var selectHead = -1
+
+    /** Absolute (start, end) of the current selection, or null if the app won't say. */
+    private fun selection(): Pair<Int, Int>? {
+        val ic = currentInputConnection ?: return null
+        val et = ic.getExtractedText(ExtractedTextRequest().apply { hintMaxChars = 0 }, 0)
+        if (et != null && et.selectionStart >= 0) {
+            return (et.startOffset + et.selectionStart) to (et.startOffset + et.selectionEnd)
         }
-        sendKey(code, shiftMeta(select))
+        return if (selStart >= 0) selStart to selEnd else null
     }
 
-    override fun home(select: Boolean) = sendKey(KeyEvent.KEYCODE_MOVE_HOME, shiftMeta(select))
-    override fun end(select: Boolean) = sendKey(KeyEvent.KEYCODE_MOVE_END, shiftMeta(select))
-    override fun selectAll() { currentInputConnection?.performContextMenuAction(android.R.id.selectAll) }
-    override fun copy() { currentInputConnection?.performContextMenuAction(android.R.id.copy) }
-    override fun cut() { currentInputConnection?.performContextMenuAction(android.R.id.cut) }
-    override fun paste() { currentInputConnection?.performContextMenuAction(android.R.id.paste) }
+    private fun finishComposing() {
+        if (composing.isNotEmpty()) {
+            currentInputConnection?.finishComposingText()
+            composing.clear()
+            glideAlternatives = emptyList()
+        }
+    }
+
+    override fun selectionMode(on: Boolean) {
+        finishComposing()
+        if (on) {
+            val sel = selection()
+            selectAnchor = sel?.first ?: -1
+            selectHead = sel?.second ?: -1
+        } else {
+            // Leave the caret where the moving end was.
+            val ic = currentInputConnection
+            if (ic != null && selectHead >= 0) ic.setSelection(selectHead, selectHead)
+            selectAnchor = -1
+            selectHead = -1
+        }
+    }
+
+    override fun moveCursor(dx: Int, dy: Int, select: Boolean) {
+        val ic = currentInputConnection ?: return
+        finishComposing()
+        feedback.tick()
+        if (dy != 0) {
+            // Lines depend on the app's layout, so up/down has to go through key events.
+            val t = SystemClock.uptimeMillis()
+            val code = if (dy < 0) KeyEvent.KEYCODE_DPAD_UP else KeyEvent.KEYCODE_DPAD_DOWN
+            val meta = if (select) KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON else 0
+            ic.sendKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_DOWN, code, 0, meta))
+            ic.sendKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_UP, code, 0, meta))
+            if (select) selection()?.let { selectHead = if (it.first == selectAnchor) it.second else it.first }
+            return
+        }
+        val et = ic.getExtractedText(ExtractedTextRequest(), 0) ?: return
+        val text = et.text?.toString() ?: return
+        val base = et.startOffset
+        val selA = base + et.selectionStart
+        val selB = base + et.selectionEnd
+        // One step = one whole character (emoji included).
+        fun step(from: Int): Int {
+            val local = (from - base).coerceIn(0, text.length)
+            val it = BreakIterator.getCharacterInstance().apply { setText(text) }
+            val next = if (dx > 0) it.following(local) else it.preceding(local)
+            return base + if (next == BreakIterator.DONE) local else next
+        }
+        if (select) {
+            if (selectAnchor < 0) { selectAnchor = selA; selectHead = selB }
+            selectHead = step(selectHead)
+            ic.setSelection(minOf(selectAnchor, selectHead), maxOf(selectAnchor, selectHead))
+        } else {
+            val pos = when {
+                selA != selB -> if (dx > 0) selB else selA
+                else -> step(selA)
+            }
+            ic.setSelection(pos, pos)
+        }
+    }
+
+    private fun lineEdge(start: Boolean, select: Boolean) {
+        val ic = currentInputConnection ?: return
+        finishComposing()
+        feedback.tick()
+        val sel = selection() ?: return
+        val target = if (start) {
+            val before = textBefore(10_000)
+            sel.first - (before.length - (before.lastIndexOf('\n') + 1))
+        } else {
+            val after = ic.getTextAfterCursor(10_000, 0)?.toString().orEmpty()
+            val nl = after.indexOf('\n')
+            sel.second + (if (nl >= 0) nl else after.length)
+        }
+        if (select) {
+            if (selectAnchor < 0) selectAnchor = if (start) sel.second else sel.first
+            selectHead = target
+            ic.setSelection(minOf(selectAnchor, target), maxOf(selectAnchor, target))
+        } else {
+            ic.setSelection(target, target)
+        }
+    }
+
+    override fun home(select: Boolean) = lineEdge(start = true, select = select)
+    override fun end(select: Boolean) = lineEdge(start = false, select = select)
+
+    override fun selectAll() {
+        val ic = currentInputConnection ?: return
+        finishComposing()
+        feedback.tick()
+        val et = ic.getExtractedText(ExtractedTextRequest(), 0)
+        if (et?.text != null && et.startOffset == 0 && et.partialStartOffset < 0) {
+            ic.setSelection(0, et.text.length)
+        } else {
+            ic.performContextMenuAction(android.R.id.selectAll)
+        }
+        selection()?.let { selectAnchor = it.first; selectHead = it.second }
+    }
+
+    private fun copySelection(): Boolean {
+        val text = currentInputConnection?.getSelectedText(0)?.toString().orEmpty()
+        if (text.isEmpty()) return false
+        getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText("PawKeys", text))
+        return true
+    }
+
+    override fun copy() {
+        finishComposing()
+        feedback.tick()
+        if (copySelection()) Toast.makeText(this, "Copied", Toast.LENGTH_SHORT).show()
+        selectionMode(false)
+    }
+
+    override fun cut() {
+        finishComposing()
+        feedback.tick()
+        if (copySelection()) currentInputConnection?.commitText("", 1)
+        selectAnchor = -1
+        selectHead = -1
+    }
+
+    override fun paste() {
+        val ic = currentInputConnection ?: return
+        finishComposing()
+        feedback.tick()
+        val clip = runCatching { getSystemService(ClipboardManager::class.java)?.primaryClip }.getOrNull()
+        val text = clip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this)?.toString()
+        if (!text.isNullOrEmpty()) ic.commitText(text, 1) else ic.performContextMenuAction(android.R.id.paste)
+        selectAnchor = -1
+        selectHead = -1
+    }
+
     override fun undo() = sendKey(KeyEvent.KEYCODE_Z, KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON)
     override fun redo() = sendKey(KeyEvent.KEYCODE_Z, KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON or KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON)
     override fun delete() = handleDelete()

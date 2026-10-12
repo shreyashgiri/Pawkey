@@ -21,6 +21,8 @@ class TextEditPanel(
         fun moveCursor(dx: Int, dy: Int, select: Boolean)
         fun home(select: Boolean)
         fun end(select: Boolean)
+        /** Select mode toggled: the IME remembers where the selection is anchored. */
+        fun selectionMode(on: Boolean)
         fun selectAll()
         fun copy()
         fun cut()
@@ -83,6 +85,7 @@ class TextEditPanel(
     private fun toggleSelect() = setSelecting(!selecting)
 
     private fun setSelecting(on: Boolean) {
+        if (selecting != on) actions.selectionMode(on)
         selecting = on
         selectButton.background = UiKit.keyBackground(context, theme, if (on) theme.accent else theme.key)
         selectButton.setTextColor(if (on) theme.onAccent else theme.keyText)
