@@ -253,6 +253,23 @@ class ScreenshotTest {
         render(startIme("calico") { it.heightPercent = 85; it.numberRow = false }.second, "29_size_small")
     }
 
+    @Test fun perch() {
+        val (_, view) = startIme { it.floating = true; it.floatX = 0.5f; it.floatY = 0.55f }
+        val perch = view as com.pawkeys.keyboard.panels.PerchContainer
+        layout(view)
+        // Draw over a stand-in "app" so the transparency shows.
+        val bmp = Bitmap.createBitmap(view.measuredWidth, view.measuredHeight, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        c.drawColor(0xFFFAFAFA.toInt())
+        val p = android.graphics.Paint().apply { color = 0xFFDADCE2.toInt() }
+        for (i in 0 until 12) c.drawRoundRect(60f, 200f + i * 190f, view.measuredWidth - 60f, 330f + i * 190f, 40f, 40f, p)
+        view.draw(c)
+        save(bmp, "66_perch")
+        val r = android.graphics.Rect()
+        perch.cardBounds(r)
+        assert(r.width() > 0 && r.left > 0 && r.right < view.measuredWidth) { "card not placed: $r" }
+    }
+
     @Test fun emojiSearch() {
         val (ime, view) = startIme()
         ime.onToolbarAction(CandidateStrip.ToolbarAction.EMOJI)

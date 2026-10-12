@@ -43,6 +43,7 @@ class CandidateStrip(context: Context, private val listener: Listener) : View(co
         CLIPBOARD(R.drawable.ic_content_paste, "Stash"),
         TEXT_EDIT(R.drawable.ic_edit_note, "Groom"),
         ONE_HANDED(R.drawable.ic_front_hand, "Single paw"),
+        FLOAT(R.drawable.ic_open_with, "Perch"),
         SIZE(R.drawable.ic_height, "Stretch"),
         THEMES(R.drawable.ic_palette, "Coats"),
         BREEDS(R.drawable.ic_keyboard, "Breeds"),

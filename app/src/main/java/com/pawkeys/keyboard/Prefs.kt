@@ -35,6 +35,17 @@ class Prefs(context: Context) {
         get() = sp.getInt(HEIGHT, 100)
         set(v) = sp.edit().putInt(HEIGHT, v.coerceIn(MIN_HEIGHT, MAX_HEIGHT)).apply()
 
+    /** Perch: floating keyboard, with its position as fractions of the free space. */
+    var floating: Boolean
+        get() = sp.getBoolean(FLOATING, false)
+        set(v) = sp.edit().putBoolean(FLOATING, v).apply()
+    var floatX: Float
+        get() = sp.getFloat(FLOAT_X, 0.5f)
+        set(v) = sp.edit().putFloat(FLOAT_X, v).apply()
+    var floatY: Float
+        get() = sp.getFloat(FLOAT_Y, 0.85f)
+        set(v) = sp.edit().putFloat(FLOAT_Y, v).apply()
+
     /** "off", "left" or "right". */
     var oneHanded: String
         get() = sp.getString(ONE_HANDED, "off")!!
@@ -83,6 +94,9 @@ class Prefs(context: Context) {
     companion object {
         const val THEME = "theme"
         const val BREED = "breed"
+        const val FLOATING = "floating"
+        const val FLOAT_X = "float_x"
+        const val FLOAT_Y = "float_y"
         const val TOOLBAR = "toolbar_buttons"
         const val KEY_BORDERS = "key_borders"
         const val NUMBER_ROW = "number_row"
@@ -116,6 +130,6 @@ class Prefs(context: Context) {
         const val MAX_HEIGHT = 140
 
         /** Settings that change how the keyboard looks and require rebuilding the view. */
-        val VISUAL_KEYS = setOf(THEME, BREED, KEY_BORDERS, NUMBER_ROW, HINT_CHARS, HEIGHT, ONE_HANDED)
+        val VISUAL_KEYS = setOf(THEME, BREED, FLOATING, KEY_BORDERS, NUMBER_ROW, HINT_CHARS, HEIGHT, ONE_HANDED)
     }
 }

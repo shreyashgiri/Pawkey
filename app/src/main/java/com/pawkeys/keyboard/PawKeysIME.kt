@@ -9,6 +9,7 @@ import android.icu.text.BreakIterator
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.graphics.Rect
 import android.inputmethodservice.InputMethodService
 import android.os.Bundle
 import android.os.SystemClock
@@ -49,6 +50,7 @@ import com.pawkeys.keyboard.panels.EmojiSearchBar
 import com.pawkeys.keyboard.panels.EmojiPanel
 import com.pawkeys.keyboard.panels.OneHandedRail
 import com.pawkeys.keyboard.panels.PawMenuPanel
+import com.pawkeys.keyboard.panels.PerchContainer
 import com.pawkeys.keyboard.panels.SizeBar
 import com.pawkeys.keyboard.panels.TextEditPanel
 import com.pawkeys.keyboard.panels.ThemePanel
@@ -157,7 +159,7 @@ class PawKeysIME : InputMethodService(),
         panelView = null
 
         val body = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; clipChildren = false }
-        when (val side = prefs.oneHanded) {
+        when (val side = if (prefs.floating) "off" else prefs.oneHanded) {
             "left", "right" -> {
                 val rail = OneHandedRail(this, theme, side,
                     onSwitch = { prefs.oneHanded = if (side == "left") "right" else "left" },
@@ -177,9 +179,37 @@ class PawKeysIME : InputMethodService(),
             addView(stripFrame, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
             addView(body, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         }
+        if (prefs.floating) {
+            // Perch: the keyboard becomes a card that floats over the app.
+            view.background = null
+            val perch = PerchContainer(this, theme, view, prefs.floatX, prefs.floatY,
+                onMoved = { x, y -> prefs.floatX = x; prefs.floatY = y },
+                onDock = { prefs.floating = false })
+            root = perch
+            applyKeyboardSettings()
+            return perch
+        }
         root = view
         applyKeyboardSettings()
         return view
+    }
+
+    private val perchLocation = IntArray(2)
+    private val perchRect = Rect()
+
+    /** In Perch mode only the card takes touches, and the app isn't pushed up. */
+    override fun onComputeInsets(outInsets: Insets) {
+        super.onComputeInsets(outInsets)
+        val perch = root as? PerchContainer ?: return
+        if (!isInputViewShown || perch.height == 0) return
+        perch.getLocationInWindow(perchLocation)
+        val bottom = perchLocation[1] + perch.height
+        outInsets.contentTopInsets = bottom
+        outInsets.visibleTopInsets = bottom
+        perch.cardBounds(perchRect)
+        perchRect.offset(perchLocation[0], perchLocation[1])
+        outInsets.touchableInsets = Insets.TOUCHABLE_INSETS_REGION
+        outInsets.touchableRegion.set(perchRect)
     }
 
     private fun applyKeyboardSettings() {
@@ -225,7 +255,7 @@ class PawKeysIME : InputMethodService(),
     @Suppress("DEPRECATION")
     private fun styleNavigationBar() {
         val w = window?.window ?: return
-        w.navigationBarColor = theme.background
+        w.navigationBarColor = if (prefs.floating) android.graphics.Color.TRANSPARENT else theme.background
         WindowCompat.getInsetsController(w, w.decorView).isAppearanceLightNavigationBars = !theme.isDark
     }
 
@@ -924,6 +954,7 @@ class PawKeysIME : InputMethodService(),
             CandidateStrip.ToolbarAction.THEMES -> togglePanel(Panel.THEMES)
             CandidateStrip.ToolbarAction.BREEDS -> togglePanel(Panel.BREEDS)
             CandidateStrip.ToolbarAction.ONE_HANDED -> toggleOneHanded()
+            CandidateStrip.ToolbarAction.FLOAT -> prefs.floating = !prefs.floating
             CandidateStrip.ToolbarAction.SIZE -> showSizeBar()
             CandidateStrip.ToolbarAction.NUMBER_ROW -> prefs.numberRow = !prefs.numberRow
             CandidateStrip.ToolbarAction.GESTURES -> {

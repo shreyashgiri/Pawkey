@@ -65,6 +65,7 @@ class PawMenuPanel(
                 Action.SOUND -> prefs.sound
                 Action.VIBRATION -> prefs.vibrate
                 Action.ONE_HANDED -> prefs.oneHanded != "off"
+                Action.FLOAT -> prefs.floating
                 Action.GESTURES -> prefs.gestureMode != "off"
                 else -> false
             }
