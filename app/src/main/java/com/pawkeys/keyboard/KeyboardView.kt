@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
@@ -97,11 +96,8 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = dp(1f) }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
     private val hintPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.RIGHT }
-    private val trailPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
-    }
     private val tmpRect = RectF()
-    private val trailPath = Path()
+    private val prowl = ProwlTrail(dm.density)
     private val icons = HashMap<Int, Drawable>()
 
     // ---- gesture state ----
@@ -318,29 +314,8 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     }
 
     private fun drawTrail(canvas: Canvas) {
-        if (mode != Mode.GLIDE || traceX.size < 2) return
-        trailPath.reset()
-        trailPath.moveTo(traceX[0], traceY[0])
-        for (i in 1 until traceX.size) trailPath.lineTo(traceX[i], traceY[i])
-        trailPaint.color = theme.accent
-        trailPaint.alpha = 190
-        trailPaint.strokeWidth = dp(5f)
-        canvas.drawPath(trailPath, trailPaint)
-        if (pawTrail) {
-            // Little paw prints stamped along the path, like a cat walked across the keys.
-            var acc = 0f
-            val step = dp(52f)
-            var left = true
-            for (i in 1 until traceX.size) {
-                acc += hypot(traceX[i] - traceX[i - 1], traceY[i] - traceY[i - 1])
-                if (acc >= step) {
-                    acc = 0f
-                    val offset = if (left) -dp(12f) else dp(12f)
-                    left = !left
-                    drawIcon(canvas, R.drawable.ic_pets, traceX[i], traceY[i] + offset, dp(13f), theme.accent)
-                }
-            }
-        }
+        prowl.showCat = pawTrail
+        if (prowl.draw(canvas, theme.accent, theme.background)) postInvalidateOnAnimation()
     }
 
     private fun blend(a: Int, b: Int): Int {
@@ -433,6 +408,8 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
                         mode = Mode.GLIDE
                         pressedKey = null
                         previewKey = null
+                        prowl.start(traceX[0], traceY[0])
+                        for (i in 1 until traceX.size) prowl.add(traceX[i], traceY[i])
                         addTrace(x, y)
                     }
                     key.type == KeyType.CHAR && gestureMode == "fleksy" && dist > unitWidth * 0.7f -> {
@@ -483,6 +460,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
 
     private fun addTrace(x: Float, y: Float) {
         traceX += x; traceY += y
+        if (mode == Mode.GLIDE) prowl.add(x, y)
         invalidate()
     }
 
@@ -502,6 +480,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
             Mode.DELETE_SWIPE -> listener.onDeleteSwipeEnd(deleteWords)
             Mode.GLIDE -> {
                 addTrace(x, y)
+                prowl.release()
                 listener.onGlide(traceX.toFloatArray(), traceY.toFloatArray())
             }
             Mode.FLICK -> {
@@ -586,6 +565,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     }
 
     fun cancelGesture() {
+        prowl.clear()
         handler.removeCallbacks(longPress)
         handler.removeCallbacks(repeat)
         if (mode == Mode.DELETE_SWIPE) listener.onDeleteSwipeEnd(0)

@@ -177,11 +177,18 @@ class ScreenshotTest {
         val down = SystemClock.uptimeMillis()
         val path = "kitten".map { kv.letterCenters()[it]!! }
         touch(kv, MotionEvent.ACTION_DOWN, path[0].first, path[0].second, down)
-        for (i in 0 until path.size - 1) for (s in 1..10) {
-            val t = s / 10f
-            touch(kv, MotionEvent.ACTION_MOVE, path[i].first + (path[i + 1].first - path[i].first) * t, path[i].second + (path[i + 1].second - path[i].second) * t, down)
+        for (i in 0 until path.size - 1) {
+            for (s in 1..14) {
+                val t = s / 14f
+                // A hand-drawn stroke bows a little between keys.
+                val bow = kotlin.math.sin(t * Math.PI).toFloat() * kv.unitWidth * 0.35f
+                touch(kv, MotionEvent.ACTION_MOVE,
+                    path[i].first + (path[i + 1].first - path[i].first) * t,
+                    path[i].second + (path[i + 1].second - path[i].second) * t - bow, down)
+            }
+            if (i == 2) render(view, "18_swipe_typing")
         }
-        render(view, "18_swipe_typing")
+        render(view, "18b_swipe_typing_turn")
         touch(kv, MotionEvent.ACTION_CANCEL, 0f, 0f, down)
     }
 
