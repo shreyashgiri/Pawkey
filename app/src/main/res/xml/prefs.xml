@@ -8,6 +8,9 @@
     </PreferenceCategory>
 
     <PreferenceCategory app:title="Look" app:iconSpaceReserved="false">
+        <ListPreference app:key="breed" app:title="Breed" app:defaultValue="pawkeys"
+            app:entries="@array/breed_names" app:entryValues="@array/breed_values"
+            app:useSimpleSummaryProvider="true" app:iconSpaceReserved="false" />
         <ListPreference app:key="theme" app:title="Coat" app:defaultValue="system"
             app:entries="@array/theme_names" app:entryValues="@array/theme_values"
             app:useSimpleSummaryProvider="true" app:iconSpaceReserved="false" />

@@ -253,6 +253,22 @@ class ScreenshotTest {
         render(startIme("calico") { it.heightPercent = 85; it.numberRow = false }.second, "29_size_small")
     }
 
+    @Test fun breeds() {
+        for (b in Breed.entries) {
+            render(startIme("system") { it.breed = b }.second, "50_breed_${b.id}")
+            // Dark variant: use the breed's dark coat directly.
+            render(startIme(b.darkCoat.id) { it.breed = b }.second, "51_breed_${b.id}_dark")
+        }
+        val (ime, view) = startIme()
+        ime.onToolbarAction(CandidateStrip.ToolbarAction.MENU)
+        layout(view)
+        findByDescription(view, "Breeds")!!.performClick()
+        render(view, "52_breeds_panel")
+        val (ime2, v2) = startIme("system", imeAction = EditorInfo.IME_ACTION_SEARCH) { it.breed = Breed.IPHONE }
+        ime2.onKey(key(Codes.SYMBOLS))
+        render(v2, "53_breed_iphone_symbols")
+    }
+
     // ---------------------------------------------------------------- app screens
 
     @Test fun settingsScreens() {

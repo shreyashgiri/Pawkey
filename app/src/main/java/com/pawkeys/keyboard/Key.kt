@@ -65,15 +65,15 @@ object Layouts {
     private fun letter(c: Char, hint: String?) =
         Key(c.code, c.toString(), hint = hint, popup = accents[c] ?: "")
 
-    fun build(id: LayoutId, numberRow: Boolean, variant: FieldVariant): KeyboardLayout = when (id) {
-        LayoutId.QWERTY -> qwerty(numberRow, variant)
-        LayoutId.SYMBOLS -> symbols(variant)
-        LayoutId.SYMBOLS_MORE -> symbolsMore(variant)
+    fun build(id: LayoutId, numberRow: Boolean, variant: FieldVariant, breed: Breed = Breed.PAWKEYS): KeyboardLayout = when (id) {
+        LayoutId.QWERTY -> qwerty(numberRow, variant, breed)
+        LayoutId.SYMBOLS -> symbols(variant, breed)
+        LayoutId.SYMBOLS_MORE -> symbolsMore(variant, breed)
         LayoutId.NUMPAD -> numpad(phone = false)
         LayoutId.PHONE -> numpad(phone = true)
     }
 
-    private fun qwerty(numberRow: Boolean, variant: FieldVariant): KeyboardLayout {
+    private fun qwerty(numberRow: Boolean, variant: FieldVariant, breed: Breed): KeyboardLayout {
         val rows = mutableListOf<List<Key>>()
         if (numberRow) rows.add(numberRowKeys())
         rows.add("qwertyuiop".mapIndexed { i, c -> letter(c, if (numberRow) null else row1Hints[i].toString()) })
@@ -83,7 +83,7 @@ object Layouts {
             "zxcvbnm".forEachIndexed { i, c -> add(letter(c, row3Hints[i])) }
             add(Key(Codes.DELETE, "", width = 1.5f, type = KeyType.FUNCTION, icon = R.drawable.ic_backspace))
         })
-        rows.add(bottomRow("123", Codes.SYMBOLS, variant))
+        rows.add(bottomRow(breed, breed.symbolsLabel, Codes.SYMBOLS, variant))
         return KeyboardLayout(LayoutId.QWERTY, rows)
     }
 
@@ -93,7 +93,7 @@ object Layouts {
         })
     }
 
-    private fun bottomRow(switchLabel: String, switchCode: Int, variant: FieldVariant): List<Key> {
+    private fun bottomRow(breed: Breed, switchLabel: String, switchCode: Int, variant: FieldVariant): List<Key> {
         val (secondary, secondaryPopup) = when (variant) {
             FieldVariant.EMAIL -> "@" to ", _ -"
             FieldVariant.URL -> "/" to ", : _ -"
@@ -103,44 +103,55 @@ object Layouts {
             FieldVariant.TEXT -> "? ! ' \" - : ; / @ # …"
             else -> ".com .net .org .io - _ : /"
         }
-        return listOf(
-            Key(switchCode, switchLabel, width = 1.5f, type = KeyType.FUNCTION),
-            Key(secondary.codePointAt(0), secondary, popup = secondaryPopup, hint = if (variant == FieldVariant.TEXT) "☺" else null),
-            Key(Codes.SPACE, "", width = 5f, type = KeyType.SPACE),
-            Key('.'.code, ".", popup = dotPopup),
-            Key(Codes.ENTER, "", width = 1.5f, type = KeyType.ACTION, icon = R.drawable.ic_keyboard_return),
-        )
+        val switch = { w: Float -> Key(switchCode, switchLabel, width = w, type = KeyType.FUNCTION) }
+        val comma = Key(secondary.codePointAt(0), secondary, popup = secondaryPopup, hint = if (variant == FieldVariant.TEXT) "☺" else null)
+        val dot = Key('.'.code, ".", popup = dotPopup)
+        val emoji = Key(Codes.EMOJI, "", type = KeyType.FUNCTION, icon = R.drawable.ic_mood)
+        val space = { w: Float -> Key(Codes.SPACE, "", width = w, type = KeyType.SPACE) }
+        val enter = { w: Float -> Key(Codes.ENTER, "", width = w, type = KeyType.ACTION, icon = R.drawable.ic_keyboard_return) }
+        return when (breed.bottomRow) {
+            // iPhone: 123 · emoji · space · return (email/url fields add @ or / and a dot).
+            Breed.BottomRow.IOS -> if (variant == FieldVariant.TEXT) {
+                listOf(switch(1.25f), Key(Codes.EMOJI, "", width = 1.25f, type = KeyType.FUNCTION, icon = R.drawable.ic_mood), space(5f), enter(2.5f))
+            } else {
+                listOf(switch(1.25f), Key(Codes.EMOJI, "", width = 1.25f, type = KeyType.FUNCTION, icon = R.drawable.ic_mood),
+                    space(3f), Key(secondary.codePointAt(0), secondary, popup = secondaryPopup), dot, enter(2.5f))
+            }
+            // Google: ?123 · , · emoji · space · . · enter
+            Breed.BottomRow.GBOARD -> listOf(switch(1.5f), Key(secondary.codePointAt(0), secondary, popup = secondaryPopup), emoji, space(4f), dot, enter(1.5f))
+            Breed.BottomRow.STANDARD -> listOf(switch(1.5f), comma, space(5f), dot, enter(1.5f))
+        }
     }
 
     private fun chars(s: String, popups: Map<Char, String> = emptyMap()) =
         s.split(' ').filter { it.isNotEmpty() }.map { Key(it.codePointAt(0), it, popup = popups[it[0]] ?: "") }
 
-    private fun symbols(variant: FieldVariant): KeyboardLayout {
+    private fun symbols(variant: FieldVariant, breed: Breed): KeyboardLayout {
         val rows = listOf(
             chars("1 2 3 4 5 6 7 8 9 0"),
             chars("+ × ÷ = / _ < > [ ]", mapOf('=' to "≠ ≈ ±", '<' to "≤ « ‹", '>' to "≥ » ›")),
             chars("! @ # $ % ^ & * ( )", mapOf('$' to "€ £ ¥ ₹ ₩ ¢", '%' to "‰", '*' to "★ †", '!' to "¡")),
             buildList {
-                add(Key(Codes.SYMBOLS_MORE, "=\\<", width = 1.5f, type = KeyType.FUNCTION))
+                add(Key(Codes.SYMBOLS_MORE, breed.moreSymbolsLabel, width = 1.5f, type = KeyType.FUNCTION))
                 addAll(chars("- ' \" : ; , ?", mapOf('-' to "– — ·", '\'' to "‘ ’ ‚", '"' to "“ ” „", '?' to "¿")))
                 add(Key(Codes.DELETE, "", width = 1.5f, type = KeyType.FUNCTION, icon = R.drawable.ic_backspace))
             },
-            bottomRow("ABC", Codes.ALPHA, variant),
+            bottomRow(breed, breed.alphaLabel, Codes.ALPHA, variant),
         )
         return KeyboardLayout(LayoutId.SYMBOLS, rows)
     }
 
-    private fun symbolsMore(variant: FieldVariant): KeyboardLayout {
+    private fun symbolsMore(variant: FieldVariant, breed: Breed): KeyboardLayout {
         val rows = listOf(
             chars("` ~ \\ | { } € £ ¥ ₩"),
             chars("° • ○ ● □ ■ ♤ ♡ ◇ ♧"),
             chars("☆ ▪ ¤ 《 》 ¡ ¿ ※ § ¶"),
             buildList {
-                add(Key(Codes.SYMBOLS, "123", width = 1.5f, type = KeyType.FUNCTION))
+                add(Key(Codes.SYMBOLS, if (breed == Breed.SAMSUNG) "2/2" else breed.symbolsLabel.removePrefix("?"), width = 1.5f, type = KeyType.FUNCTION))
                 addAll(chars("© ® ™ ✓ … ¢ 🐾"))
                 add(Key(Codes.DELETE, "", width = 1.5f, type = KeyType.FUNCTION, icon = R.drawable.ic_backspace))
             },
-            bottomRow("ABC", Codes.ALPHA, variant),
+            bottomRow(breed, breed.alphaLabel, Codes.ALPHA, variant),
         )
         return KeyboardLayout(LayoutId.SYMBOLS_MORE, rows)
     }

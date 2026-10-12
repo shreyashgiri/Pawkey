@@ -27,7 +27,7 @@ private fun LinearLayout.grid(tiles: List<View>, columns: Int) {
 /** The Den: every PawKeys tool one tap away, opened from the paw on the Whisker bar. */
 @SuppressLint("ViewConstructor")
 class PawMenuPanel(context: Context, theme: KeyboardTheme, prefs: Prefs, private val onAction: (Item) -> Unit) : LinearLayout(context) {
-    enum class Item { EMOJI, CLIPBOARD, TEXT_EDIT, ONE_HANDED, SIZE, THEMES, NUMBER_ROW, GESTURES, SOUND, VIBRATION, SHORTCUTS, SETTINGS }
+    enum class Item { EMOJI, CLIPBOARD, TEXT_EDIT, ONE_HANDED, SIZE, THEMES, BREEDS, NUMBER_ROW, GESTURES, SOUND, VIBRATION, SHORTCUTS, SETTINGS }
 
     init {
         orientation = VERTICAL
@@ -43,7 +43,8 @@ class PawMenuPanel(context: Context, theme: KeyboardTheme, prefs: Prefs, private
             Triple(Item.ONE_HANDED, R.drawable.ic_front_hand, "Single paw"),
             Triple(Item.SIZE, R.drawable.ic_height, "Stretch"),
             Triple(Item.THEMES, R.drawable.ic_palette, "Coats"),
-            Triple(Item.NUMBER_ROW, R.drawable.ic_keyboard, "Number row"),
+            Triple(Item.BREEDS, R.drawable.ic_keyboard, "Breeds"),
+            Triple(Item.NUMBER_ROW, R.drawable.ic_dialpad, "Number row"),
             Triple(Item.GESTURES, R.drawable.ic_gesture, gesture),
             Triple(Item.SOUND, R.drawable.ic_volume_up, "Sound"),
             Triple(Item.VIBRATION, R.drawable.ic_vibration, "Haptics"),
@@ -60,13 +61,27 @@ class PawMenuPanel(context: Context, theme: KeyboardTheme, prefs: Prefs, private
             }
             UiKit.tile(context, theme, icon, label, on) { onAction(item) }
         }
-        grid(tiles, 4)
+        val body = LinearLayout(context).apply { orientation = VERTICAL }
+        tiles.chunked(COLUMNS).forEach { chunk ->
+            val row = LinearLayout(context).apply { orientation = HORIZONTAL }
+            chunk.forEach { row.addView(it, UiKit.weighted(1f, 3f, context)) }
+            repeat(COLUMNS - chunk.size) { row.addView(View(context), UiKit.weighted(1f, 3f, context)) }
+            body.addView(row, LayoutParams(LayoutParams.MATCH_PARENT, UiKit.dp(context, 78f)))
+        }
+        addView(android.widget.ScrollView(context).apply {
+            isVerticalScrollBarEnabled = false
+            addView(body)
+        }, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
+    }
+
+    companion object {
+        private const val COLUMNS = 5
     }
 }
 
 /** Coats: a mini keyboard preview per colour theme. */
 @SuppressLint("ViewConstructor")
-class ThemePanel(context: Context, theme: KeyboardTheme, current: String, private val onPick: (String) -> Unit) : LinearLayout(context) {
+class ThemePanel(context: Context, theme: KeyboardTheme, current: String, breed: com.pawkeys.keyboard.Breed, private val onPick: (String) -> Unit) : LinearLayout(context) {
     init {
         orientation = VERTICAL
         setBackgroundColor(theme.background)
@@ -75,7 +90,7 @@ class ThemePanel(context: Context, theme: KeyboardTheme, current: String, privat
         addView(UiKit.header(context, theme, "Coats"), LayoutParams(LayoutParams.MATCH_PARENT, UiKit.dp(context, 38f)))
         val options = listOf("system" to "Auto") + KeyboardTheme.ALL.map { it.id to it.name }
         val tiles = options.map { (id, name) ->
-            val t = KeyboardTheme.resolve(context, id)
+            val t = KeyboardTheme.resolve(context, id, breed)
             swatch(t, name, id == current, theme) { onPick(id) }
         }
         grid(tiles, 4)
@@ -168,5 +183,58 @@ class OneHandedRail(context: Context, theme: KeyboardTheme, side: String, onSwit
             "Move keyboard",
         ) { onSwitch() }, lp())
         addView(FrameLayout(context), LayoutParams(1, 1))
+    }
+}
+
+/** Breeds: pick the keyboard style. Each card is a tiny preview of that breed's keys. */
+@SuppressLint("ViewConstructor")
+class BreedPanel(context: Context, theme: KeyboardTheme, current: com.pawkeys.keyboard.Breed, private val onPick: (com.pawkeys.keyboard.Breed) -> Unit) : LinearLayout(context) {
+    init {
+        orientation = VERTICAL
+        setBackgroundColor(theme.background)
+        val pad = UiKit.dp(context, 6f)
+        setPadding(pad, 0, pad, pad)
+        addView(UiKit.header(context, theme, "Breeds"), LayoutParams(LayoutParams.MATCH_PARENT, UiKit.dp(context, 38f)))
+        val night = theme.isDark
+        val cards = com.pawkeys.keyboard.Breed.entries.map { b -> card(b, if (night) b.darkCoat else b.lightCoat, b == current, theme) }
+        grid(cards, 2)
+    }
+
+    private fun card(b: com.pawkeys.keyboard.Breed, t: KeyboardTheme, selected: Boolean, ui: KeyboardTheme): View {
+        val box = LinearLayout(context).apply {
+            orientation = VERTICAL
+            gravity = Gravity.CENTER
+            background = GradientDrawable().apply {
+                cornerRadius = UiKit.dp(context, 14f).toFloat()
+                setColor(t.background)
+                setStroke(UiKit.dp(context, if (selected) 2.5f else 1f), if (selected) ui.accent else ui.border)
+            }
+            setOnClickListener { onPick(b) }
+            contentDescription = b.label
+        }
+        val keys = LinearLayout(context).apply { orientation = HORIZONTAL; gravity = Gravity.CENTER }
+        val r = UiKit.dp(context, b.radiusDp * 0.6f).toFloat()
+        val enterColor = when (b.enter) {
+            com.pawkeys.keyboard.Breed.EnterStyle.ACCENT, com.pawkeys.keyboard.Breed.EnterStyle.PILL, com.pawkeys.keyboard.Breed.EnterStyle.IOS_TEXT -> t.accent
+            com.pawkeys.keyboard.Breed.EnterStyle.FUNCTION -> t.functionKey
+        }
+        listOf(t.key, t.key, t.key, t.functionKey, enterColor).forEachIndexed { i, c ->
+            keys.addView(View(context).apply {
+                background = GradientDrawable().apply {
+                    cornerRadius = if (i == 4 && b.enter == com.pawkeys.keyboard.Breed.EnterStyle.PILL) 100f else r
+                    setColor(c)
+                }
+            }, LayoutParams(UiKit.dp(context, if (i == 4) 22f else 14f), UiKit.dp(context, 18f)).apply { setMargins(3, 3, 3, 3) })
+        }
+        box.addView(keys)
+        box.addView(TextView(context).apply {
+            text = b.label
+            setTextColor(t.keyText)
+            typeface = UiKit.MEDIUM
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+            gravity = Gravity.CENTER
+            setPadding(4, UiKit.dp(context, 6f), 4, 0)
+        })
+        return box
     }
 }

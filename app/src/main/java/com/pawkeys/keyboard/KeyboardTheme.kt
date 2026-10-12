@@ -69,13 +69,15 @@ data class KeyboardTheme(
 
         val ALL = listOf(CALICO, TUXEDO, SIAMESE, RAGDOLL, PANTHER, HIGH_CONTRAST)
 
-        /** "system" follows the phone's dark mode: Calico by day, Tuxedo by night. */
-        fun resolve(context: Context, id: String): KeyboardTheme {
+        /** "system" (Auto) follows the phone's dark mode using the breed's native colours. */
+        fun resolve(context: Context, id: String, breed: Breed = Breed.PAWKEYS): KeyboardTheme {
             if (id == "system") {
                 val night = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-                return if (night == Configuration.UI_MODE_NIGHT_YES) TUXEDO else CALICO
+                return if (night == Configuration.UI_MODE_NIGHT_YES) breed.darkCoat else breed.lightCoat
             }
-            return ALL.firstOrNull { it.id == id } ?: CALICO
+            return ALL.firstOrNull { it.id == id }
+                ?: Breed.entries.flatMap { listOf(it.lightCoat, it.darkCoat) }.firstOrNull { it.id == id }
+                ?: CALICO
         }
     }
 }

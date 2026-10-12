@@ -61,6 +61,15 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     var enterIcon = R.drawable.ic_keyboard_return
         set(v) { field = v; invalidate() }
     var spaceLabel = "pawkeys"
+    /** Breed (style): key shape, spacing, enter key and labels. */
+    var breed: Breed = Breed.PAWKEYS
+        set(v) { field = v; requestLayout(); invalidate() }
+    /** Text for iPhone-style enter keys ("return", "Send", "Search"...). */
+    var enterLabel = "return"
+        set(v) { field = v; invalidate() }
+    /** True when the field has an action (send/search/go...); iPhone colours those keys blue. */
+    var enterIsAction = false
+        set(v) { field = v; invalidate() }
     var showHints = false
     var keyBorders = false
     var heightScale = 1f
@@ -76,14 +85,14 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     private fun dp(v: Float) = v * dm.density
     private fun sp(v: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, v, dm)
 
-    // Spacing: generous gaps and soft corners for a calm, uncluttered look.
-    private val rowHeight get() = dp(56f) * heightScale
-    private val padTop = dp(6f)
-    private val padBottom = dp(10f)
-    private val padSide = dp(5f)
-    private val gapH = dp(3f)
-    private val gapV = dp(5f)
-    private val radius = dp(10f)
+    // Spacing comes from the breed; PawKeys' own is the most spacious.
+    private val rowHeight get() = dp(breed.rowDp) * heightScale
+    private val padTop get() = dp(breed.padTopDp)
+    private val padBottom get() = dp(breed.padBottomDp)
+    private val padSide get() = dp(breed.padSideDp)
+    private val gapH get() = dp(breed.gapHDp)
+    private val gapV get() = dp(breed.gapVDp)
+    private val radius get() = dp(breed.radiusDp)
 
     private val regular = Typeface.create("sans-serif", Typeface.NORMAL)
     private val medium = Typeface.create("sans-serif-medium", Typeface.NORMAL)
@@ -202,21 +211,44 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     private fun drawKey(canvas: Canvas, key: Key) {
         tmpRect.set(key.bounds.left + gapH, key.bounds.top + gapV, key.bounds.right - gapH, key.bounds.bottom - gapV)
         val pressed = key === pressedKey
+        val isEnter = key.code == Codes.ENTER
+        // How the enter key looks depends on the breed.
+        val enterAccent = when (breed.enter) {
+            Breed.EnterStyle.ACCENT, Breed.EnterStyle.PILL -> true
+            Breed.EnterStyle.FUNCTION -> false
+            Breed.EnterStyle.IOS_TEXT -> enterIsAction
+        }
         val bg = when {
-            key.type == KeyType.ACTION -> if (pressed) blend(theme.accent, theme.keyPressed) else theme.accent
+            isEnter && enterAccent -> if (pressed) blend(theme.accent, theme.keyPressed) else theme.accent
             pressed -> theme.keyPressed
-            key.type == KeyType.FUNCTION -> theme.functionKey
+            key.type == KeyType.FUNCTION || key.type == KeyType.ACTION -> theme.functionKey
             else -> theme.key
         }
-        keyPaint.color = bg
-        canvas.drawRoundRect(tmpRect, radius, radius, keyPaint)
-        if (keyBorders || theme.id == KeyboardTheme.HIGH_CONTRAST.id) {
-            borderPaint.color = theme.border
-            canvas.drawRoundRect(tmpRect, radius, radius, borderPaint)
+        val r = if (isEnter && breed.enter == Breed.EnterStyle.PILL) tmpRect.height() / 2f else radius
+        if (breed.keyShadow) {
+            // iPhone keys sit on a thin darker edge.
+            keyPaint.color = theme.border
+            tmpRect.offset(0f, dp(1f))
+            canvas.drawRoundRect(tmpRect, r, r, keyPaint)
+            tmpRect.offset(0f, -dp(1f))
         }
-        val fg = if (key.type == KeyType.ACTION) theme.onAccent else theme.keyText
+        keyPaint.color = bg
+        canvas.drawRoundRect(tmpRect, r, r, keyPaint)
+        if ((keyBorders && !breed.keyShadow) || theme.id == KeyboardTheme.HIGH_CONTRAST.id) {
+            borderPaint.color = theme.border
+            canvas.drawRoundRect(tmpRect, r, r, borderPaint)
+        }
+        val fg = if (isEnter && enterAccent) theme.onAccent else theme.keyText
         val cx = tmpRect.centerX()
         val cy = tmpRect.centerY()
+
+        if (isEnter && breed.enter == Breed.EnterStyle.IOS_TEXT) {
+            labelPaint.color = fg
+            labelPaint.textSize = sp(15.5f)
+            labelPaint.typeface = regular
+            canvas.drawText(enterLabel, cx, cy - (labelPaint.descent() + labelPaint.ascent()) / 2f, labelPaint)
+            return
+        }
 
         when {
             key.code == Codes.SHIFT -> {
@@ -256,13 +288,14 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         }
     }
 
-    /** A quiet wordmark on the spacebar. */
+    /** PawKeys shows a quiet wordmark; other breeds use their own spacebar label. */
     private fun drawSpace(canvas: Canvas, cx: Float, cy: Float) {
-        labelPaint.color = theme.hintText
-        labelPaint.textSize = sp(11.5f)
-        labelPaint.typeface = medium
-        labelPaint.letterSpacing = 0.12f
-        canvas.drawText(spaceLabel, cx, cy - (labelPaint.descent() + labelPaint.ascent()) / 2f, labelPaint)
+        val native = breed.spaceLabel
+        labelPaint.color = if (breed == Breed.IPHONE) theme.keyText else theme.hintText
+        labelPaint.textSize = sp(if (native != null) 14f else 11.5f)
+        labelPaint.typeface = if (native != null) regular else medium
+        labelPaint.letterSpacing = if (native != null) 0f else 0.12f
+        canvas.drawText(native ?: spaceLabel, cx, cy - (labelPaint.descent() + labelPaint.ascent()) / 2f, labelPaint)
         labelPaint.letterSpacing = 0f
     }
 

@@ -11,6 +11,10 @@ class Prefs(context: Context) {
     var theme: String
         get() = sp.getString(THEME, "system")!!
         set(v) = sp.edit().putString(THEME, v).apply()
+    /** Keyboard style (PawKeys, Samsung, iPhone, Google). */
+    var breed: Breed
+        get() = Breed.from(sp.getString(BREED, Breed.PAWKEYS.id))
+        set(v) = sp.edit().putString(BREED, v.id).apply()
     val keyBorders get() = sp.getBoolean(KEY_BORDERS, false)
     var numberRow: Boolean
         get() = sp.getBoolean(NUMBER_ROW, false)
@@ -57,6 +61,7 @@ class Prefs(context: Context) {
 
     companion object {
         const val THEME = "theme"
+        const val BREED = "breed"
         const val KEY_BORDERS = "key_borders"
         const val NUMBER_ROW = "number_row"
         const val HINT_CHARS = "hint_chars"
@@ -85,6 +90,6 @@ class Prefs(context: Context) {
         const val MAX_HEIGHT = 140
 
         /** Settings that change how the keyboard looks and require rebuilding the view. */
-        val VISUAL_KEYS = setOf(THEME, KEY_BORDERS, NUMBER_ROW, HINT_CHARS, HEIGHT, ONE_HANDED)
+        val VISUAL_KEYS = setOf(THEME, BREED, KEY_BORDERS, NUMBER_ROW, HINT_CHARS, HEIGHT, ONE_HANDED)
     }
 }

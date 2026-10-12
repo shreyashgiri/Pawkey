@@ -23,6 +23,7 @@ import com.pawkeys.keyboard.engine.GlideDecoder
 import com.pawkeys.keyboard.engine.Offensive
 import com.pawkeys.keyboard.engine.Suggestion
 import com.pawkeys.keyboard.engine.UserDictionary
+import com.pawkeys.keyboard.panels.BreedPanel
 import com.pawkeys.keyboard.panels.ClipboardPanel
 import com.pawkeys.keyboard.panels.EmojiPanel
 import com.pawkeys.keyboard.panels.OneHandedRail
@@ -56,7 +57,7 @@ class PawKeysIME : InputMethodService(),
     private lateinit var stripFrame: FrameLayout
     private lateinit var keyboardView: KeyboardView
     private lateinit var keyboardFrame: FrameLayout
-    private enum class Panel { MENU, EMOJI, CLIPBOARD, TEXT_EDIT, THEMES }
+    private enum class Panel { MENU, EMOJI, CLIPBOARD, TEXT_EDIT, THEMES, BREEDS }
     private var panel: Panel? = null
     private var panelView: View? = null
     private var needsRebuild = false
@@ -122,7 +123,7 @@ class PawKeysIME : InputMethodService(),
     // ---------------------------------------------------------------- views
 
     override fun onCreateInputView(): View {
-        theme = KeyboardTheme.resolve(this, prefs.theme)
+        theme = KeyboardTheme.resolve(this, prefs.theme, prefs.breed)
         keyboardView = KeyboardView(this, this)
         strip = CandidateStrip(this, this)
         stripFrame = FrameLayout(this).apply { addView(strip) }
@@ -161,6 +162,7 @@ class PawKeysIME : InputMethodService(),
         val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         keyboardView.apply {
             theme = this@PawKeysIME.theme
+            breed = prefs.breed
             showHints = prefs.hintChars
             keyBorders = prefs.keyBorders
             heightScale = prefs.heightPercent / 100f * if (landscape) 0.78f else 1f
@@ -262,6 +264,16 @@ class PawKeysIME : InputMethodService(),
         val noEnterAction = info.imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION != 0
         enterAction = if (noEnterAction || action == EditorInfo.IME_ACTION_NONE || action == EditorInfo.IME_ACTION_UNSPECIFIED) null else action
         if (root != null) {
+            keyboardView.enterIsAction = enterAction != null
+            keyboardView.enterLabel = when (enterAction) {
+                EditorInfo.IME_ACTION_GO -> "go"
+                EditorInfo.IME_ACTION_NEXT -> "next"
+                EditorInfo.IME_ACTION_SEARCH -> "search"
+                EditorInfo.IME_ACTION_SEND -> "send"
+                EditorInfo.IME_ACTION_DONE -> "done"
+                EditorInfo.IME_ACTION_PREVIOUS -> "previous"
+                else -> "return"
+            }
             keyboardView.enterIcon = when (enterAction) {
                 EditorInfo.IME_ACTION_GO, EditorInfo.IME_ACTION_NEXT -> R.drawable.ic_arrow_forward
                 EditorInfo.IME_ACTION_SEARCH -> R.drawable.ic_search
@@ -291,7 +303,7 @@ class PawKeysIME : InputMethodService(),
     private fun setLayout(id: LayoutId) {
         layoutId = id
         if (root == null) return
-        keyboardView.layout = Layouts.build(id, prefs.numberRow || isPassword, variant)
+        keyboardView.layout = Layouts.build(id, prefs.numberRow || isPassword, variant, prefs.breed)
         keyboardView.shiftState = if (id == LayoutId.QWERTY) shift else ShiftState.OFF
     }
 
@@ -860,7 +872,8 @@ class PawKeysIME : InputMethodService(),
             Panel.EMOJI -> EmojiPanel(this, theme, prefs.sp, ::insertEmoji, ::handleDelete, ::closePanel)
             Panel.CLIPBOARD -> ClipboardPanel(this, theme, clipboard, ::pasteClip, ::closePanel)
             Panel.TEXT_EDIT -> TextEditPanel(this, theme, this)
-            Panel.THEMES -> ThemePanel(this, theme, prefs.theme) { prefs.theme = it }
+            Panel.THEMES -> ThemePanel(this, theme, prefs.theme, prefs.breed) { prefs.theme = it }
+            Panel.BREEDS -> BreedPanel(this, theme, prefs.breed) { prefs.breed = it }
         }
         keyboardView.cancelGesture()
         keyboardView.visibility = View.GONE
@@ -868,7 +881,7 @@ class PawKeysIME : InputMethodService(),
         panel = p
         panelView = view
         strip.activeAction = when (p) {
-            Panel.MENU, Panel.THEMES -> CandidateStrip.ToolbarAction.MENU
+            Panel.MENU, Panel.THEMES, Panel.BREEDS -> CandidateStrip.ToolbarAction.MENU
             Panel.EMOJI -> CandidateStrip.ToolbarAction.EMOJI
             Panel.CLIPBOARD -> CandidateStrip.ToolbarAction.CLIPBOARD
             Panel.TEXT_EDIT -> CandidateStrip.ToolbarAction.TEXT_EDIT
@@ -894,6 +907,7 @@ class PawKeysIME : InputMethodService(),
             PawMenuPanel.Item.CLIPBOARD -> openPanel(Panel.CLIPBOARD)
             PawMenuPanel.Item.TEXT_EDIT -> openPanel(Panel.TEXT_EDIT)
             PawMenuPanel.Item.THEMES -> openPanel(Panel.THEMES)
+            PawMenuPanel.Item.BREEDS -> openPanel(Panel.BREEDS)
             PawMenuPanel.Item.ONE_HANDED -> toggleOneHanded()
             PawMenuPanel.Item.SIZE -> showSizeBar()
             PawMenuPanel.Item.NUMBER_ROW -> prefs.numberRow = !prefs.numberRow
