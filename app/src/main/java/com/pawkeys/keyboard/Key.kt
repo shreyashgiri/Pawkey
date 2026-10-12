@@ -83,7 +83,7 @@ object Layouts {
             "zxcvbnm".forEachIndexed { i, c -> add(letter(c, row3Hints[i])) }
             add(Key(Codes.DELETE, "", width = 1.5f, type = KeyType.FUNCTION, icon = R.drawable.ic_backspace))
         })
-        rows.add(bottomRow("!#1", Codes.SYMBOLS, variant))
+        rows.add(bottomRow("123", Codes.SYMBOLS, variant))
         return KeyboardLayout(LayoutId.QWERTY, rows)
     }
 
@@ -121,7 +121,7 @@ object Layouts {
             chars("+ × ÷ = / _ < > [ ]", mapOf('=' to "≠ ≈ ±", '<' to "≤ « ‹", '>' to "≥ » ›")),
             chars("! @ # $ % ^ & * ( )", mapOf('$' to "€ £ ¥ ₹ ₩ ¢", '%' to "‰", '*' to "★ †", '!' to "¡")),
             buildList {
-                add(Key(Codes.SYMBOLS_MORE, "1/2", width = 1.5f, type = KeyType.FUNCTION))
+                add(Key(Codes.SYMBOLS_MORE, "=\\<", width = 1.5f, type = KeyType.FUNCTION))
                 addAll(chars("- ' \" : ; , ?", mapOf('-' to "– — ·", '\'' to "‘ ’ ‚", '"' to "“ ” „", '?' to "¿")))
                 add(Key(Codes.DELETE, "", width = 1.5f, type = KeyType.FUNCTION, icon = R.drawable.ic_backspace))
             },
@@ -136,7 +136,7 @@ object Layouts {
             chars("° • ○ ● □ ■ ♤ ♡ ◇ ♧"),
             chars("☆ ▪ ¤ 《 》 ¡ ¿ ※ § ¶"),
             buildList {
-                add(Key(Codes.SYMBOLS, "2/2", width = 1.5f, type = KeyType.FUNCTION))
+                add(Key(Codes.SYMBOLS, "123", width = 1.5f, type = KeyType.FUNCTION))
                 addAll(chars("© ® ™ ✓ … ¢ 🐾"))
                 add(Key(Codes.DELETE, "", width = 1.5f, type = KeyType.FUNCTION, icon = R.drawable.ic_backspace))
             },

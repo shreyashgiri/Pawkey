@@ -4,9 +4,8 @@ import android.content.Context
 import android.content.res.Configuration
 
 /**
- * Colour palette for the keyboard. The look follows Samsung's One UI keyboard
- * (flat, softly rounded keys, muted function keys), each one named after a cat
- * coat and with a single cat-coloured accent.
+ * Colour palette ("coat") for the keyboard: quiet neutrals, flat keys and a single
+ * accent colour, each named after a cat coat.
  */
 data class KeyboardTheme(
     val id: String,
@@ -27,38 +26,38 @@ data class KeyboardTheme(
     companion object {
         val CALICO = KeyboardTheme(
             id = "calico", name = "Calico", isDark = false,
-            background = 0xFFE9EAEE.toInt(), key = 0xFFFCFCFD.toInt(), functionKey = 0xFFD5D8DF.toInt(),
-            keyPressed = 0xFFC3C7D0.toInt(), keyText = 0xFF1F2024.toInt(), hintText = 0xFF8A8D96.toInt(),
-            accent = 0xFFE8833A.toInt(), onAccent = 0xFFFFFFFF.toInt(), border = 0x1F000000,
-            stripText = 0xFF3A3B40.toInt(), popup = 0xFFFFFFFF.toInt(),
+            background = 0xFFF1F2F5.toInt(), key = 0xFFFFFFFF.toInt(), functionKey = 0xFFE2E4E9.toInt(),
+            keyPressed = 0xFFD3D6DD.toInt(), keyText = 0xFF1A1B1F.toInt(), hintText = 0xFF9A9CA5.toInt(),
+            accent = 0xFFD9773A.toInt(), onAccent = 0xFFFFFFFF.toInt(), border = 0x14000000,
+            stripText = 0xFF55575E.toInt(), popup = 0xFFFFFFFF.toInt(),
         )
         val TUXEDO = KeyboardTheme(
             id = "tuxedo", name = "Tuxedo", isDark = true,
-            background = 0xFF1B1B1D.toInt(), key = 0xFF323235.toInt(), functionKey = 0xFF262628.toInt(),
-            keyPressed = 0xFF4A4A4E.toInt(), keyText = 0xFFF2F2F4.toInt(), hintText = 0xFF8E8E93.toInt(),
-            accent = 0xFFF2A65A.toInt(), onAccent = 0xFF1B1B1D.toInt(), border = 0x26FFFFFF,
-            stripText = 0xFFE2E2E6.toInt(), popup = 0xFF3C3C40.toInt(),
+            background = 0xFF111113.toInt(), key = 0xFF242428.toInt(), functionKey = 0xFF1A1A1D.toInt(),
+            keyPressed = 0xFF36363C.toInt(), keyText = 0xFFEDEDF0.toInt(), hintText = 0xFF7D7D86.toInt(),
+            accent = 0xFFEFA262.toInt(), onAccent = 0xFF1A1208.toInt(), border = 0x1FFFFFFF,
+            stripText = 0xFFB9B9C0.toInt(), popup = 0xFF2E2E33.toInt(),
         )
         val SIAMESE = KeyboardTheme(
             id = "siamese", name = "Siamese", isDark = false,
-            background = 0xFFF1EADF.toInt(), key = 0xFFFFFCF7.toInt(), functionKey = 0xFFE2D6C4.toInt(),
-            keyPressed = 0xFFD3C3AC.toInt(), keyText = 0xFF3B2F2A.toInt(), hintText = 0xFF9C8B7C.toInt(),
-            accent = 0xFF7A5238.toInt(), onAccent = 0xFFFFFFFF.toInt(), border = 0x1F3B2F2A,
-            stripText = 0xFF4A3B33.toInt(), popup = 0xFFFFFCF7.toInt(),
+            background = 0xFFF4EFE7.toInt(), key = 0xFFFFFDF9.toInt(), functionKey = 0xFFE8DFD1.toInt(),
+            keyPressed = 0xFFDACDB9.toInt(), keyText = 0xFF2E2621.toInt(), hintText = 0xFFA39383.toInt(),
+            accent = 0xFF8A5A3B.toInt(), onAccent = 0xFFFFFFFF.toInt(), border = 0x142E2621,
+            stripText = 0xFF5E5047.toInt(), popup = 0xFFFFFDF9.toInt(),
         )
         val RAGDOLL = KeyboardTheme(
             id = "ragdoll", name = "Ragdoll", isDark = false,
-            background = 0xFFE8EDF5.toInt(), key = 0xFFFDFEFF.toInt(), functionKey = 0xFFD0D9E8.toInt(),
-            keyPressed = 0xFFBCC8DB.toInt(), keyText = 0xFF1C2433.toInt(), hintText = 0xFF8590A3.toInt(),
-            accent = 0xFF3E7BFA.toInt(), onAccent = 0xFFFFFFFF.toInt(), border = 0x1F1C2433,
-            stripText = 0xFF2E3747.toInt(), popup = 0xFFFFFFFF.toInt(),
+            background = 0xFFEEF1F7.toInt(), key = 0xFFFFFFFF.toInt(), functionKey = 0xFFDCE2EE.toInt(),
+            keyPressed = 0xFFC9D2E2.toInt(), keyText = 0xFF18202E.toInt(), hintText = 0xFF8E97A8.toInt(),
+            accent = 0xFF4A78E0.toInt(), onAccent = 0xFFFFFFFF.toInt(), border = 0x1418202E,
+            stripText = 0xFF4A5366.toInt(), popup = 0xFFFFFFFF.toInt(),
         )
         val PANTHER = KeyboardTheme(
-            id = "panther", name = "Black Panther (AMOLED)", isDark = true,
-            background = 0xFF000000.toInt(), key = 0xFF161618.toInt(), functionKey = 0xFF0C0C0D.toInt(),
-            keyPressed = 0xFF2C2C30.toInt(), keyText = 0xFFEDEDED.toInt(), hintText = 0xFF77777C.toInt(),
-            accent = 0xFFD7B8FF.toInt(), onAccent = 0xFF000000.toInt(), border = 0x33FFFFFF,
-            stripText = 0xFFDADADA.toInt(), popup = 0xFF242427.toInt(),
+            id = "panther", name = "Panther", isDark = true,
+            background = 0xFF000000.toInt(), key = 0xFF141416.toInt(), functionKey = 0xFF0A0A0B.toInt(),
+            keyPressed = 0xFF27272B.toInt(), keyText = 0xFFE8E8EA.toInt(), hintText = 0xFF6E6E75.toInt(),
+            accent = 0xFFC6A6FF.toInt(), onAccent = 0xFF0E0718.toInt(), border = 0x26FFFFFF,
+            stripText = 0xFFA9A9B0.toInt(), popup = 0xFF222226.toInt(),
         )
         val HIGH_CONTRAST = KeyboardTheme(
             id = "contrast", name = "High contrast", isDark = true,

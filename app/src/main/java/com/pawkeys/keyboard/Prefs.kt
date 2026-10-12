@@ -15,7 +15,7 @@ class Prefs(context: Context) {
     var numberRow: Boolean
         get() = sp.getBoolean(NUMBER_ROW, false)
         set(v) = sp.edit().putBoolean(NUMBER_ROW, v).apply()
-    val hintChars get() = sp.getBoolean(HINT_CHARS, true)
+    val hintChars get() = sp.getBoolean(HINT_CHARS, false)
 
     /** Keyboard height in percent of the default (Samsung's "Keyboard size"). */
     var heightPercent: Int

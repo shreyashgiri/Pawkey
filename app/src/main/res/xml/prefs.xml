@@ -15,7 +15,7 @@
         <SwitchPreferenceCompat app:key="number_row" app:title="Number row" app:defaultValue="false" app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat app:key="hint_chars" app:title="Show alternative characters"
             app:summary="Numbers and symbols in the corner of the letter keys. Long-press a key to type them."
-            app:defaultValue="true" app:iconSpaceReserved="false" />
+            app:defaultValue="false" app:iconSpaceReserved="false" />
         <SeekBarPreference app:key="keyboard_height" app:title="Keyboard size (%)" app:defaultValue="100"
             app:min="70" android:max="140" app:showSeekBarValue="true" app:seekBarIncrement="5"
             app:iconSpaceReserved="false"/>

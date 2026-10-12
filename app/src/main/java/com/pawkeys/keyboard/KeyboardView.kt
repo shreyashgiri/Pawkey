@@ -61,8 +61,8 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         set(v) { if (field != v) { field = v; invalidate() } }
     var enterIcon = R.drawable.ic_keyboard_return
         set(v) { field = v; invalidate() }
-    var spaceLabel = "English (US)"
-    var showHints = true
+    var spaceLabel = "pawkeys"
+    var showHints = false
     var keyBorders = false
     var heightScale = 1f
         set(v) { field = v; requestLayout() }
@@ -77,13 +77,17 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     private fun dp(v: Float) = v * dm.density
     private fun sp(v: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, v, dm)
 
-    private val rowHeight get() = dp(54f) * heightScale
-    private val padTop = dp(4f)
-    private val padBottom = dp(6f)
-    private val padSide = dp(3f)
-    private val gapH = dp(2.6f)
-    private val gapV = dp(4.5f)
-    private val radius = dp(8f)
+    // Spacing: generous gaps and soft corners for a calm, uncluttered look.
+    private val rowHeight get() = dp(56f) * heightScale
+    private val padTop = dp(6f)
+    private val padBottom = dp(10f)
+    private val padSide = dp(5f)
+    private val gapH = dp(3f)
+    private val gapV = dp(5f)
+    private val radius = dp(10f)
+
+    private val regular = Typeface.create("sans-serif", Typeface.NORMAL)
+    private val medium = Typeface.create("sans-serif-medium", Typeface.NORMAL)
 
     /** Width of one key unit in px (a letter key's width). */
     var unitWidth = 0f
@@ -225,44 +229,45 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
                     ShiftState.ON -> R.drawable.ic_shift_fill1 to theme.accent
                     ShiftState.LOCKED -> R.drawable.ic_shift_lock_fill1 to theme.accent
                 }
-                drawIcon(canvas, res, cx, cy, dp(24f), tint)
+                drawIcon(canvas, res, cx, cy, dp(22f), tint)
             }
-            key.code == Codes.ENTER -> drawIcon(canvas, enterIcon, cx, cy, dp(24f), fg)
+            key.code == Codes.ENTER -> drawIcon(canvas, enterIcon, cx, cy, dp(22f), fg)
             key.type == KeyType.SPACE -> drawSpace(canvas, cx, cy)
-            key.icon != 0 -> drawIcon(canvas, key.icon, cx, cy, dp(24f), fg)
+            key.icon != 0 -> drawIcon(canvas, key.icon, cx, cy, dp(22f), fg)
             else -> {
                 val label = if (key.isLetter && shiftState != ShiftState.OFF) key.label.uppercase() else key.label
                 val size = when {
-                    key.type == KeyType.FUNCTION -> sp(15f)
-                    label.length > 1 -> sp(17f)
-                    layout?.id == LayoutId.NUMPAD || layout?.id == LayoutId.PHONE -> sp(24f)
-                    else -> sp(22f)
+                    key.type == KeyType.FUNCTION -> sp(14f)
+                    label.length > 1 -> sp(16f)
+                    layout?.id == LayoutId.NUMPAD || layout?.id == LayoutId.PHONE -> sp(23f)
+                    else -> sp(21f)
                 } * min(1.1f, max(0.85f, heightScale))
                 labelPaint.color = fg
                 labelPaint.textSize = size
-                labelPaint.typeface = if (key.type == KeyType.FUNCTION) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+                labelPaint.letterSpacing = if (key.type == KeyType.FUNCTION) 0.04f else 0f
+                labelPaint.typeface = if (key.type == KeyType.FUNCTION) medium else regular
                 canvas.drawText(label, cx, cy - (labelPaint.descent() + labelPaint.ascent()) / 2f, labelPaint)
+                labelPaint.letterSpacing = 0f
                 val hint = key.hint
-                if (hint != null && (showHints || !key.isLetter)) {
+                // Corner hints are optional; the phone pad's letters always show.
+                if (hint != null && (showHints || hint.length > 1)) {
                     hintPaint.color = theme.hintText
-                    hintPaint.textSize = sp(10.5f)
-                    canvas.drawText(hint, tmpRect.right - dp(5f), tmpRect.top + dp(3f) - hintPaint.ascent(), hintPaint)
+                    hintPaint.textSize = sp(9.5f)
+                    hintPaint.typeface = regular
+                    canvas.drawText(hint, tmpRect.right - dp(6f), tmpRect.top + dp(4f) - hintPaint.ascent(), hintPaint)
                 }
             }
         }
     }
 
+    /** A quiet wordmark on the spacebar. */
     private fun drawSpace(canvas: Canvas, cx: Float, cy: Float) {
-        hintPaint.color = theme.hintText
         labelPaint.color = theme.hintText
-        labelPaint.textSize = sp(12.5f)
-        labelPaint.typeface = Typeface.DEFAULT
-        val textW = labelPaint.measureText(spaceLabel)
-        val iconSize = dp(13f)
-        val total = textW + iconSize + dp(5f)
-        val start = cx - total / 2f
-        drawIcon(canvas, R.drawable.ic_pets, start + iconSize / 2f, cy, iconSize, theme.accent)
-        canvas.drawText(spaceLabel, start + iconSize + dp(5f) + textW / 2f, cy - (labelPaint.descent() + labelPaint.ascent()) / 2f, labelPaint)
+        labelPaint.textSize = sp(11.5f)
+        labelPaint.typeface = medium
+        labelPaint.letterSpacing = 0.12f
+        canvas.drawText(spaceLabel, cx, cy - (labelPaint.descent() + labelPaint.ascent()) / 2f, labelPaint)
+        labelPaint.letterSpacing = 0f
     }
 
     private fun drawIcon(canvas: Canvas, res: Int, cx: Float, cy: Float, size: Float, tint: Int) {
@@ -280,12 +285,12 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         val bottom = key.bounds.top + gapV - dp(4f)
         tmpRect.set(left, bottom - h, left + w, bottom)
         keyPaint.color = theme.popup
-        keyPaint.setShadowLayer(dp(4f), 0f, dp(1.5f), 0x40000000)
-        canvas.drawRoundRect(tmpRect, radius * 1.3f, radius * 1.3f, keyPaint)
+        keyPaint.setShadowLayer(dp(10f), 0f, dp(3f), 0x26000000)
+        canvas.drawRoundRect(tmpRect, radius * 1.2f, radius * 1.2f, keyPaint)
         keyPaint.clearShadowLayer()
         labelPaint.color = theme.keyText
-        labelPaint.textSize = sp(30f)
-        labelPaint.typeface = Typeface.DEFAULT
+        labelPaint.textSize = sp(28f)
+        labelPaint.typeface = regular
         val label = if (key.isLetter && shiftState != ShiftState.OFF) key.label.uppercase() else key.label
         canvas.drawText(label, tmpRect.centerX(), tmpRect.centerY() - (labelPaint.descent() + labelPaint.ascent()) / 2f, labelPaint)
     }
@@ -295,8 +300,8 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         tmpRect.set(popupCells.minOf { it.left }, popupCells.minOf { it.top }, popupCells.maxOf { it.right }, popupCells.maxOf { it.bottom })
         tmpRect.inset(-dp(4f), -dp(4f))
         keyPaint.color = theme.popup
-        keyPaint.setShadowLayer(dp(6f), 0f, dp(2f), 0x50000000)
-        canvas.drawRoundRect(tmpRect, radius * 1.3f, radius * 1.3f, keyPaint)
+        keyPaint.setShadowLayer(dp(14f), 0f, dp(4f), 0x30000000)
+        canvas.drawRoundRect(tmpRect, radius * 1.2f, radius * 1.2f, keyPaint)
         keyPaint.clearShadowLayer()
         popupItems.forEachIndexed { i, text ->
             val cell = popupCells[i]
@@ -306,8 +311,8 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
                 canvas.drawRoundRect(cell, radius, radius, keyPaint)
             }
             labelPaint.color = if (selected) theme.onAccent else theme.keyText
-            labelPaint.textSize = if (text.length > 2) sp(14f) else sp(21f)
-            labelPaint.typeface = Typeface.DEFAULT
+            labelPaint.textSize = if (text.length > 2) sp(14f) else sp(20f)
+            labelPaint.typeface = regular
             canvas.drawText(text, cell.centerX(), cell.centerY() - (labelPaint.descent() + labelPaint.ascent()) / 2f, labelPaint)
         }
     }
